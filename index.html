@@ -193,6 +193,13 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 @keyframes stflame{from{transform:scale(1) rotate(-6deg)}to{transform:scale(1.25) rotate(6deg)}}
 @keyframes stshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 @media (prefers-reduced-motion:reduce){.streak,.srow,.srow .flame{animation:none}}
+
+.pickgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pickb{display:flex;align-items:center;gap:10px;text-align:left;font:800 1rem/1.2 var(--body);color:var(--ink);background:var(--bg-2);border:2px solid var(--line);border-radius:14px;padding:14px 12px;cursor:pointer;min-width:0}
+.pickb:active{transform:scale(.97)}
+.pickb:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.pickb .pke{font-size:1.6rem}
+.tag.pb{background:#ff7a18;color:#2a1200}
 </style>
 </head>
 <body>
@@ -617,7 +624,7 @@ function leaveAll(){
 function fail(msg){ err=msg; leaveAll(); }
 function onPeers(){
   if(!room) return;
-  if(role==='host'&&G){ if(G.ph==='q') collect(); render(); fillFeed(); }
+  if(role==='host'&&G){ if(G.ph==='q') collect(); else if(G.ph==='pick') checkPick(); render(); fillFeed(); }
   else if(role==='player'&&Pl){
     const H=hostPresence();
     if(H&&H.bv!==BV){ fail('Tu página es de otra versión del juego. Recargala (o borrá la caché del navegador) y volvé a entrar.'); return; }
@@ -646,6 +653,8 @@ function pubHost(){
     ok:inRev?G.ok:null,
     dist:inRev?G.dist:null,
     gs:inRev?(G.gs||null):null,
+    pk:G.ph==='pick'?{by:G.pickBy,s:G.pickSeq,cs:G.pickCs}:null,
+    pb:(inQ||inRev)?(G.pickedBy||null):null,
     b:(inRev||inEnd)?G.board:null
   }).catch(()=>{});
 }
@@ -681,6 +690,7 @@ function startGame(){
   if(!G||G.ph!=='lobby'||!players().length) return;
   G.scores=new Map();
   G.qn=-1;
+  G.picks=makePicks(G.order.length); G.pickedBy=null; G.lastPicker=''; G.pickSeq=G.pickSeq||0;
   nextQuestion();
 }
 function nextQuestion(){
@@ -688,6 +698,70 @@ function nextQuestion(){
   clearTimeout(G.timer);
   G.qn++;
   if(G.qn>=G.order.length){ endGame(); return; }
+  G.pickedBy=null;
+  if(G.picks&&G.picks.has(G.qn)&&startPick()) return;
+  beginQuestion();
+}
+function makePicks(total){
+  const st=new Set();
+  if(total<8) return st;
+  const cnt=Math.max(1,Math.floor(total/5)), seg=(total-2)/cnt;
+  for(let k=0;k<cnt;k++){
+    const p=2+Math.floor(k*seg+Math.random()*seg);
+    if(p<total) st.add(p);
+  }
+  return st;
+}
+const CATE=['🌍','📜','🇦🇷','🔬','🎬','🎵','⚽','📚','🧠','🏷️','🧩','💬','🔢','🎯'];
+function freePool(c,used){
+  return BANK.map((q,i)=>i).filter(i=>{
+    const q=BANK[i];
+    if(used.has(i)||bad.has(q.id)||(selLv>=0&&q.lv!==selLv)) return false;
+    return c===13?(q.k==='n'&&selCats.has(q.cat)):(q.k!=='n'&&q.cat===c);
+  });
+}
+function startPick(){
+  const names=players().map(p=>clean(p.presence.name)).filter(n=>n);
+  if(!names.length) return false;
+  const used=new Set(G.order);
+  const cs=[...selCats].filter(c=>freePool(c,used).length>0);
+  if(freePool(13,used).length) cs.push(13);
+  if(cs.length<2) return false;
+  const pool=names.filter(n=>n!==G.lastPicker), cand=pool.length?pool:names;
+  G.pickBy=cand[Math.floor(Math.random()*cand.length)]; G.lastPicker=G.pickBy;
+  G.pickCs=cs; G.pickSeq++; G.ph='pick';
+  stopClock();
+  clearTimeout(G.timer);
+  G.timer=setTimeout(()=>applyPick(G.pickCs[Math.floor(Math.random()*G.pickCs.length)]),14000);
+  pubHost();
+  render();
+  return true;
+}
+function applyPick(c){
+  if(!G||G.ph!=='pick') return;
+  clearTimeout(G.timer);
+  const pool=freePool(c,new Set(G.order));
+  if(pool.length){
+    const fr=pool.filter(i=>!seen.has(BANK[i].id)), arr=fr.length?fr:pool;
+    G.order[G.qn]=arr[Math.floor(Math.random()*arr.length)];
+    G.pickedBy=G.pickBy;
+  }
+  beginQuestion();
+}
+function checkPick(){
+  if(!G||G.ph!=='pick'||!room) return;
+  for(const p of room.peers()){
+    if(p.kind!=='viewer'||!p.presence||p.presence.role!=='player') continue;
+    if(clean(p.presence.name)!==G.pickBy) continue;
+    const pc=p.presence.pc;
+    if(pc&&pc.s===G.pickSeq&&G.pickCs.indexOf(Number(pc.c))>=0){ applyPick(Number(pc.c)); return; }
+  }
+}
+function hostPickCat(c){
+  if(!G||G.ph!=='pick'||!G.me||G.pickBy!==G.me.name||G.pickCs.indexOf(c)<0) return;
+  applyPick(c);
+}
+function beginQuestion(){
   const q=BANK[G.order[G.qn]];
   markSeen(q.id);
   players().forEach(p=>score(clean(p.presence.name)));
@@ -862,6 +936,32 @@ function answer(i){
   render();
 }
 
+function pickCat(c){
+  const H=hostPresence();
+  if(!H||!Pl||H.ph!=='pick'||!H.pk||H.pk.by!==Pl.name||Pl.pickedS===H.pk.s) return;
+  Pl.pickedS=H.pk.s;
+  room.presence({pc:{s:H.pk.s,c:c}}).catch(()=>{});
+  render();
+}
+function pickedByNow(){ return role==='host'?(G?G.pickedBy:null):((hostPresence()||{}).pb||null); }
+function pickPanel(by,cs,mine,onPick,done){
+  return el('div',{class:'stack'},
+    el('section',{class:'panel center'},
+      el('h2',{text:mine?'¡Te toca elegir la categoría!':'Elección de categoría'}),
+      el('p',{class:'lead',role:'status'},avNode(by),done?'Elegida. Preparando la pregunta…':(mine?'Tocá la categoría de la próxima pregunta.':by+' está eligiendo la categoría de la próxima pregunta…'))),
+    mine&&!done?el('div',{class:'pickgrid'},cs.map(c=>el('button',{type:'button',class:'pickb',onclick:()=>onPick(c)},
+      el('span',{class:'pke','aria-hidden':'true',text:CATE[c]}),
+      el('span',{text:c===13?'Aproximación (número)':CATS[c]})))):null);
+}
+function buildHostPick(){
+  return pickPanel(G.pickBy,G.pickCs,!!(G.me&&G.me.name===G.pickBy),hostPickCat,false);
+}
+function buildPPick(){
+  const H=hostPresence(), pk=H&&H.pk;
+  if(!pk) return waitCard('Preparando la pregunta…','');
+  const cs=(Array.isArray(pk.cs)?pk.cs:[]).filter(c=>Number.isInteger(c)&&c>=0&&c<=13);
+  return pickPanel(pk.by,cs,pk.by===Pl.name,pickCat,Pl.pickedS===pk.s);
+}
 function answerNum(v){
   const H=hostPresence();
   if(!H||!Pl||H.ph!=='q'||Pl.choice!==null||Pl.seq!==H.seq||Pl.seq===Pl.skipSeq||expired||!Number.isFinite(v)) return;
@@ -909,6 +1009,7 @@ function qhead(q,n,total,withClock){
   return el('div',{class:'qhead'},
     el('span',{class:'tag',text:'Pregunta '+n+' de '+total}),
     el('span',{class:'tag '+q.k,text:CATS[q.cat]+(q.k==='n'?' · ¿Cuánto?':'')}),
+    pickedByNow()?el('span',{class:'tag pb',text:'🎯 Eligió '+pickedByNow()}):null,
     withClock?el('div',{class:'clock',id:'clock','aria-hidden':'true',text:q.t}):null);
 }
 function boardList(b,r,me,gain){
@@ -1237,7 +1338,7 @@ function buildHostGone(){
 }
 const BUILD={
   home:buildHome, connecting:buildConnecting, hostLobby:buildHostLobby, hostQ:buildHostQ, hostRev:buildHostRev,
-  hostEnd:buildHostEnd, pLobby:buildPLobby, pQ:buildPQ, pRev:buildPRev, pEnd:buildPEnd, hostWait:buildHostWait, hostGone:buildHostGone
+  hostEnd:buildHostEnd, pLobby:buildPLobby, pQ:buildPQ, pRev:buildPRev, pEnd:buildPEnd, hostWait:buildHostWait, hostPick:buildHostPick, pPick:buildPPick, hostGone:buildHostGone
 };
 
 /* ---------- qué pantalla toca ---------- */
@@ -1246,6 +1347,7 @@ function view(){
   if(role==='host'){
     if(!G||!G.ready) return {n:'connecting',k:'c'};
     if(G.ph==='lobby') return {n:'hostLobby',k:playerNames().join('\u0001')+'|'+G.order.length};
+    if(G.ph==='pick') return {n:'hostPick',k:String(G.pickSeq)};
     if(G.ph==='q') return {n:'hostQ',k:G.seq+'|'+G.myChoice+'|'+(expired?1:0)};
     if(G.ph==='rev') return {n:'hostRev',k:G.seq+'|'+(bad.has(BANK[G.order[G.qn]].id)?1:0)};
     return {n:'hostEnd',k:String(G.gen)};
@@ -1258,6 +1360,7 @@ function view(){
   }
   Pl.goneAt=0;
   if(H.ph==='lobby') return {n:'pLobby',k:playerNames().join('\u0001')};
+  if(H.ph==='pick') return {n:'pPick',k:[H.pk?H.pk.s:0,Pl.pickedS].join('|')};
   if(H.ph==='q') return {n:'pQ',k:[H.seq,Pl.choice,expired?1:0,Pl.seq===Pl.skipSeq?1:0].join('|')};
   if(H.ph==='rev') return {n:'pRev',k:String(H.seq)};
   return {n:'pEnd',k:String(H.gen)};

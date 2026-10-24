@@ -182,6 +182,17 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .avb .nonebox::after{content:'✖';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;opacity:.6;font-size:1.3rem}
 .avrow{min-width:0}
 .avprev .btn{white-space:nowrap;padding-left:14px;padding-right:14px}
+
+.streak{display:grid;gap:8px;animation:stpop .5s cubic-bezier(.2,1.4,.4,1)}
+.srow{display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,#ff7a18,#ffb347);color:#2a1200;border-radius:16px;padding:12px 16px;font-weight:900;box-shadow:0 6px 18px rgba(255,122,24,.35)}
+.srow.big{background:linear-gradient(90deg,#ff2d55,#ff7a18,#ffcc1f);font-size:1.15rem;animation:stshake .5s ease-in-out 2}
+.srow .flame{font-size:1.7rem;animation:stflame .6s ease-in-out infinite alternate}
+.srow .stxt{display:flex;align-items:center;flex-wrap:wrap;min-width:0}
+.srow .av{font-size:1.6rem}
+@keyframes stpop{from{transform:scale(.6) translateY(-12px);opacity:0}to{transform:none;opacity:1}}
+@keyframes stflame{from{transform:scale(1) rotate(-6deg)}to{transform:scale(1.25) rotate(6deg)}}
+@keyframes stshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media (prefers-reduced-motion:reduce){.streak,.srow,.srow .flame{animation:none}}
 </style>
 </head>
 <body>
@@ -914,6 +925,19 @@ function podium(b,r){
     el('div',{class:'step',text:r[i]})):null;
   return el('div',{class:'podium'},slot(1),slot(0),slot(2));
 }
+function streakMilestone(n){ return n===3||(n>=5&&n%5===0); }
+function streakBanner(b,me){
+  const hot=(b||[]).filter(e=>streakMilestone(e[4])&&e[3]===1);
+  if(!hot.length) return null;
+  hot.sort((a,c)=>c[4]-a[4]);
+  return el('section',{class:'streak',role:'status'},hot.slice(0,4).map(e=>{
+    const mine=me&&e[0]===me, big=e[4]>=10;
+    return el('div',{class:'srow'+(big?' big':'')},
+      el('span',{class:'flame','aria-hidden':'true',text:big?'🔥🔥':'🔥'}),
+      el('span',{class:'stxt'},avNode(e[0]),
+        mine?'¡Venís con racha de '+e[4]+' seguidas!':e[0]+' viene con racha de '+e[4]+' seguidas'+(big?' ¡Imparable!':'')));
+  }));
+}
 function waitCard(t,s){
   return el('section',{class:'panel center'},el('h2',{text:t}),s?el('p',{class:'lead',role:'status',text:s}):null);
 }
@@ -1114,6 +1138,7 @@ function buildHostRev(){
   const r=ranks(G.board);
   const last=G.qn+1>=G.order.length;
   return el('div',{class:'stack'},
+    streakBanner(G.board,G.me?G.me.name:null),
     qhead(q,G.qn+1,G.order.length,false),
     el('h2',{class:'q small',text:q.q}),
     q.k==='n'?numReveal(q,G.gs,G.me?G.me.name:null):el('div',{class:'opts'},q.o.map((_,i)=>optEl(q,i,{cls:i===q.c?'ok':'dim',count:G.dist[i],mark:i===q.c?'✓':null}))),
@@ -1178,6 +1203,7 @@ function buildPRev(){
   else if(b[i-1][1]-e[1]>0) gap='A '+fmt(b[i-1][1]-e[1])+' pts de '+b[i-1][0];
   else gap='Empatás con '+b[i-1][0];
   return el('div',{class:'stack'},
+    streakBanner(b,Pl.name),
     el('section',{class:'result '+(res===1?'good':res===0&&!isN?'bad':'none')},
       el('div',{class:'big',role:'status',text:isN?(res===1?'¡El más cercano!':res===0?'Quedaste a '+fmt(Math.abs(Math.round(((Pl.myNum||0)-q.num)*1000)/1000)):'No respondiste'):(res===1?'¡Correcto!':res===0?'Incorrecto':'No respondiste')}),
       (isN?res!==-1:res===1)?el('div',{class:'gain',text:(e[2]>0?'+'+fmt(e[2]):'+0')}):null,

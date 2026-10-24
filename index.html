@@ -175,10 +175,13 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .avprev .av{font-size:6rem;margin:6px 10px 0 6px}
 .avrow{display:grid;gap:6px}
 .avlab{margin:0;font-weight:800;color:var(--gold);font-size:.85rem;text-transform:uppercase;letter-spacing:.04em}
-.avs{grid-template-columns:repeat(5,1fr);gap:6px}
-.avb{padding:6px;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
-.avb .av{width:100%;height:100%;margin:0;font-size:1rem}
-.avb .none{font-size:1.2rem;opacity:.6}
+.avs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;min-width:0}
+.avb{padding:6px;display:block;min-width:0;width:100%}
+.avb .av{display:block;position:relative;width:100%;height:0;padding-bottom:100%;margin:0}
+.avb .av .avsvg{position:absolute;left:0;top:0;width:100%;height:100%}
+.avb .nonebox::after{content:'✖';position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;opacity:.6;font-size:1.3rem}
+.avrow{min-width:0}
+.avprev .btn{white-space:nowrap;padding-left:14px;padding-right:14px}
 </style>
 </head>
 <body>
@@ -1017,7 +1020,7 @@ function buildAvPanel(){
   const opt=(part,id,label,cur,nm)=>{
     const t=Object.assign({},a); t[part]=id;
     return el('button',{type:'button',class:'avb','aria-pressed':String(id===cur),'aria-label':label+': '+(nm||'ninguno'),onclick:()=>setAv(part,id)},
-      id===''&&part!=='c'?el('span',{class:'none',text:'✖'}):avBuild(avStr(t),true));
+      id===''&&part!=='c'?el('span',{class:'av nonebox','aria-hidden':'true'}):avBuild(avStr(t),true));
   };
   const row=(label,part,keys,map,cur)=>el('div',{class:'avrow'},
     el('p',{class:'avlab',text:label}),

@@ -1,9 +1,12 @@
 <!doctype html>
+<!-- Ingenia © 2026 Hernán Toledo. Todos los derechos reservados. Queda prohibida la copia, reproducción o distribución de este código y de sus contenidos sin autorización escrita del autor. -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v27">
+<meta name="app-version" content="v28">
+<meta name="author" content="Hernán Toledo">
+<meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
 <meta name="application-name" content="Ingenia">
 <meta name="apple-mobile-web-app-title" content="Ingenia">
@@ -71,6 +74,7 @@ p{margin:0}
 .panel.center{align-items:center;text-align:center}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
 .lead{color:var(--muted)}
+.copy{color:var(--muted);font-size:.75rem;text-align:center;opacity:.8;margin:.5rem 0 0}
 .lab{font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field{display:flex;flex-direction:column;gap:6px}
 .inp{width:100%;font:800 1.25rem/1.3 var(--body);padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
@@ -259,7 +263,7 @@ let BV=hid(BANK.map(q=>q.id).join(',')+'|'+PROTO);
 async function loadFotos(){
   try{
     const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),2500);
-    const res=await fetch('fotos/fotos.json?v=27',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
+    const res=await fetch('fotos/fotos.json?v=28',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
     if(!res.ok) return;
     const L=await res.json(); if(!Array.isArray(L)) return;
     const items=L.filter(e=>e&&typeof e.n==='string'&&e.n.trim()&&typeof e.f==='string'&&e.f.trim()).map(e=>({n:e.n.trim(),f:e.f.trim(),g:String(e.g||'general'),t:e.t==='personaje'?'personaje':'persona',d:typeof e.d==='string'?e.d.trim():'',lv:({e:0,m:1,h:2})[e.lv]!=null?({e:0,m:1,h:2})[e.lv]:1,cat:(typeof e.cat==='string'&&CATS.indexOf(e.cat)>=0)?CATS.indexOf(e.cat):15}));
@@ -1372,11 +1376,12 @@ function buildHome(){
   return el('div',{class:'stack'},
     el('div',{class:'stack'},
       el('h1',{text:'¿Quién la tiene más clara?'}),
-      el('p',{class:'lead',text:'Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v27)'})),
+      el('p',{class:'lead',text:'Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v28)'})),
     msg?el('p',{class:'notice',role:'status',text:msg}):null,
     err?el('p',{class:'notice err',role:'alert',text:err}):null,
     buildAvPanel(),
-    el('div',{class:'grid2'},join,host));
+    el('div',{class:'grid2'},join,host),
+    el('p',{class:'copy',text:'Ingenia © 2026 Hernán Toledo · Todos los derechos reservados'}));
 }
 function buildConnecting(){
   return el('section',{class:'panel center'},

@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v28">
+<meta name="app-version" content="v29">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -162,14 +162,22 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .nm{font-weight:800;overflow-wrap:anywhere;min-width:0}
 .pts{font:400 1.2rem/1 var(--display);font-variant-numeric:tabular-nums}
 .gn{font-weight:800;color:var(--good);font-variant-numeric:tabular-nums;min-width:4.5ch;text-align:right}
-.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;min-height:260px}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;min-height:300px}
 .pc{flex:1;max-width:220px;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
-.pc .who{font-weight:800;text-align:center;overflow-wrap:anywhere}
-.pc .sc{font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
-.pc .step{width:100%;border-radius:14px 14px 0 0;display:grid;place-items:start center;padding-top:10px;font:400 2rem/1 var(--display);color:var(--on-gold);transform-origin:bottom center;animation:rise .7s ease-out both}
-.pc[data-p="1"] .step{height:150px;background:var(--gold)}
-.pc[data-p="2"] .step{height:110px;background:#cfd3e6;animation-delay:.15s}
-.pc[data-p="3"] .step{height:80px;background:#d99a5b;animation-delay:.3s}
+.pc .who{text-align:center;position:relative;z-index:1;margin-bottom:-.55rem;line-height:0}
+.pc .pn{font-weight:800;font-size:.9rem;line-height:1.15;text-align:center;overflow-wrap:anywhere;color:#2b1a26;padding:0 6px}
+.pc .sc{font-weight:800;color:#3a2410;opacity:.8;font-size:.85rem;font-variant-numeric:tabular-nums}
+.pc .step{position:relative;z-index:2;width:100%;border-radius:14px 14px 0 0;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:10px;font:400 2rem/1 var(--display);color:var(--on-gold);transform-origin:bottom center;animation:rise .7s ease-out both}
+.pc[data-p="1"] .step{min-height:205px;background:linear-gradient(180deg,#ffe27a,#f2a900);box-shadow:inset 0 3px 0 rgba(255,255,255,.55),inset 0 -8px 0 rgba(0,0,0,.12)}
+.pc[data-p="2"] .step{min-height:172px;background:linear-gradient(180deg,#eceffa,#a9b1ca);box-shadow:inset 0 3px 0 rgba(255,255,255,.6),inset 0 -8px 0 rgba(0,0,0,.12);animation-delay:.15s}
+.pc[data-p="3"] .step{min-height:150px;background:linear-gradient(180deg,#f0b685,#b9692f);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -8px 0 rgba(0,0,0,.14);animation-delay:.3s}
+.pc .step{padding:16px 4px 16px}
+.medal{display:block;width:clamp(3rem,15vw,4rem);animation:medpop .6s cubic-bezier(.2,1.6,.4,1) .75s both;filter:drop-shadow(0 3px 3px rgba(0,0,0,.3))}
+.medal svg{display:block;width:100%;height:auto}
+.pc[data-p="1"] .medal{width:clamp(3.5rem,18vw,4.8rem)}
+.pc .who .av{font-size:4.2rem;display:inline-block;margin:0;filter:drop-shadow(0 4px 4px rgba(0,0,0,.35))}
+.pc[data-p="1"] .who .av{font-size:5.2rem}
+@keyframes medpop{from{transform:scale(0) rotate(-25deg)}to{transform:scale(1) rotate(0)}}
 @keyframes rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -263,7 +271,7 @@ let BV=hid(BANK.map(q=>q.id).join(',')+'|'+PROTO);
 async function loadFotos(){
   try{
     const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),2500);
-    const res=await fetch('fotos/fotos.json?v=28',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
+    const res=await fetch('fotos/fotos.json?v=29',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
     if(!res.ok) return;
     const L=await res.json(); if(!Array.isArray(L)) return;
     const items=L.filter(e=>e&&typeof e.n==='string'&&e.n.trim()&&typeof e.f==='string'&&e.f.trim()).map(e=>({n:e.n.trim(),f:e.f.trim(),g:String(e.g||'general'),t:e.t==='personaje'?'personaje':'persona',d:typeof e.d==='string'?e.d.trim():'',lv:({e:0,m:1,h:2})[e.lv]!=null?({e:0,m:1,h:2})[e.lv]:1,cat:(typeof e.cat==='string'&&CATS.indexOf(e.cat)>=0)?CATS.indexOf(e.cat):15}));
@@ -408,7 +416,7 @@ function headGeo(c){
   if(c.shape==='skull') return '<path d="M16 54 Q16 18 50 18 Q84 18 84 54 Q84 66 74 70 L74 84 Q74 90 68 90 L32 90 Q26 90 26 84 L26 70 Q16 66 16 54Z" {A}/>';
   return '<ellipse cx="50" cy="56" rx="37" ry="34" {A}/>';
 }
-function avSvg(a){
+function avSvg(a,nobg){
   const c=CH[a.c], u=++AVUID, hc=c.h, ol=shade(hc,-.34), bg=bgPair(hc);
   const geo=headGeo(c); const fr=c.front.split('url(#hc)').join('url(#hc'+u+')'), bk=c.back.split('url(#hc)').join('url(#hc'+u+')');
   const head=geo.replace('{A}','fill="'+hc+'"');
@@ -436,30 +444,33 @@ function avSvg(a){
   const bl=blush?'<ellipse cx="19" cy="67" rx="7" ry="4.4" fill="#ff4f7b" opacity=".3"/><ellipse cx="81" cy="67" rx="7" ry="4.4" fill="#ff4f7b" opacity=".3"/>':'';
   const ex=a.e?EXA[a.e]:null;
   const shd=shade(hc,-.14), cl=a.k?CLO[a.k].s:'';
+  const NOF={rubor:1,pecas:1,lengua:1};
+  const wrapA=s=>'<g filter="url(#ac'+u+')">'+s+'</g>';
+  const accs=(s,dy,t)=>'<g clip-path="url(#hs'+u+')"><g transform="'+t+'"><g filter="url(#sh'+u+')" transform="translate(0 '+dy+')">'+s+'</g></g></g><g transform="'+t+'">'+wrapA(s)+'</g>';
   const spark='<path transform="translate(55.5 31) rotate(12) scale(1.05)" d="M0 -5 Q.8 -.8 5 0 Q.8 .8 0 5 Q-.8 .8 -5 0 Q-.8 -.8 0 -5Z" fill="#ffd23f"/>';
   return '<svg class="avsvg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>'
-    +'<clipPath id="hc'+u+'">'+clip+'</clipPath><clipPath id="tl'+u+'"><circle cx="50" cy="50" r="50"/></clipPath></defs>'
-    +'<circle cx="50" cy="50" r="50" fill="'+bg[0]+'"/>'
+    +'<clipPath id="hc'+u+'">'+clip+'</clipPath><clipPath id="hs'+u+'">'+geo.replace('{A}','transform="translate(-1.2 -7)"')+'</clipPath><filter id="ac'+u+'" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="1.25" result="d"/><feFlood flood-color="#2b1a26" flood-opacity=".9" result="fc"/><feComposite in="fc" in2="d" operator="in" result="ol"/><feOffset in="SourceAlpha" dy="2.4" result="od"/><feComposite in="SourceAlpha" in2="od" operator="out" result="tp"/><feFlood flood-color="#fff" flood-opacity=".4" result="wf"/><feComposite in="wf" in2="tp" operator="in" result="hl"/><feOffset in="SourceAlpha" dy="-2.6" result="ou"/><feComposite in="SourceAlpha" in2="ou" operator="out" result="bt"/><feFlood flood-color="#000" flood-opacity=".24" result="sf"/><feComposite in="sf" in2="bt" operator="in" result="sd"/><feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/><feMergeNode in="sd"/><feMergeNode in="hl"/></feMerge></filter><filter id="sh'+u+'" x="-25%" y="-25%" width="150%" height="150%"><feFlood flood-color="#1a0f1a" flood-opacity=".4"/><feComposite in2="SourceAlpha" operator="in"/><feGaussianBlur stdDeviation="2"/></filter><clipPath id="tl'+u+'"><circle cx="50" cy="50" r="50"/></clipPath></defs>'
+    +(nobg?'':'<circle cx="50" cy="50" r="50" fill="'+bg[0]+'"/>'
     +'<g clip-path="url(#tl'+u+')"><g fill="#fff" opacity=".13">'+AVRAYS+'</g><circle cx="50" cy="62" r="37" fill="#fff" opacity=".13"/>'+(a.b?BGS[a.b].s:'')+'</g>'
-    +'<circle cx="50" cy="50" r="48.8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.4"/>'
+    +'<circle cx="50" cy="50" r="48.8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.4"/>')
     +(a.k?'<g clip-path="url(#tl'+u+')">'+cl+'<path d="M0 71 Q50 64 100 71" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="3"/></g>':'')
     +(a.k?'<g transform="translate(5 1) scale(.9)"><g class="bob">':'<g transform="translate(3.5 5) scale(.93)"><g class="bob">')
     +'<g transform="rotate(-2.5 50 88)">'+bk
     +'<g clip-path="url(#hc'+u+')"><rect width="100" height="100" fill="'+shd+'"/><g transform="translate(-1.2 -7)">'+head+'</g></g>'+fr
     +bl+eyes+winkS+nose+mouth+brows
     +((a.c==='tigre'||a.c==='zombi')?'':spark)
-    +(ex&&ex.z==='front'?(function(){ const d=({skull:{corbatin:5,bufanda:4,lengua:8},robot:{corbatin:3,bufanda:3,lengua:7},ghost:{lengua:6}}[c.shape]||{})[a.e]||0; return d?'<g transform="translate(0 '+d+')">'+ex.s+'</g>':ex.s; })():'')
-    +(a.g?GLA[a.g].s:'')
-    +(ex&&ex.z==='back'?ex.s:'')
-    +(a.h?HAT[a.h].s:'')
+    +(ex&&ex.z==='front'?(function(){ const d=({skull:{corbatin:5,bufanda:4,lengua:8},robot:{corbatin:3,bufanda:3,lengua:7},ghost:{lengua:6}}[c.shape]||{})[a.e]||0; const s2=NOF[a.e]?ex.s:wrapA(ex.s); return d?'<g transform="translate(0 '+d+')">'+s2+'</g>':s2; })():'')
+    +(a.g?accs(GLA[a.g].s,2.4,'translate(0 0)'):'')
+    +(ex&&ex.z==='back'?wrapA(ex.s):'')
+    +(a.h?accs(HAT[a.h].s,3.4,'rotate(-3.5 50 30) translate(0 2.5)'):'')
     +'</g></g></g></svg>';
 }
-function avBuild(v,still){
+function avBuild(v,still,nobg){
   const a=avParse(v), sp=document.createElement('span');
   sp.className='av'+(still?' still':''); sp.setAttribute('aria-hidden','true');
   if(!a) return sp;
   sp.style.setProperty('--d',(-Math.random()*4).toFixed(2)+'s');
-  sp.innerHTML=avSvg(a);
+  sp.innerHTML=avSvg(a,nobg);
   return sp;
 }
 
@@ -468,7 +479,7 @@ let hostPlay=lsGet('di-hp',true)!==false, hostNick=lsGet('di-hnick',inNick||'');
 const LVN=['Fácil','Medio','Difícil'];
 let selAv=lsGet('di-av',null); { const a0=avParse(selAv); selAv=a0?avStr(a0):CHL[Math.floor(Math.random()*CHL.length)]+'|||'; }
 function avOf(n){ return ''; }
-function avNode(n){ const p=players().find(x=>clean(x.presence.name)===n); return avBuild(p?p.presence.av:null); }
+function avNode(n,nobg){ const p=players().find(x=>clean(x.presence.name)===n); return avBuild(p?p.presence.av:null,false,nobg); }
 const seen=new Set(lsGet('di-seen',[])), bad=new Set(lsGet('di-bad',[]));
 const selCats=new Set(lsGet('di-cats3',CATS.map((_,i)=>i)).filter(c=>c>=0&&c<CATS.length));
 if(!selCats.size) CATS.forEach((_,i)=>selCats.add(i));
@@ -1165,11 +1176,22 @@ function boardList(b,r,me,gain){
     el('span',{class:'pts',text:fmt(e[1])}),
     gain?el('span',{class:'gn',text:e[2]>0?'+'+fmt(e[2]):''}):null)));
 }
+let MEDU=0;
+function medalNode(n){
+  const u=++MEDU, P={1:['#fff1a8','#ffc928','#c98a00','#d62839'],2:['#ffffff','#d5dae8','#8f98b3','#2d7ff9'],3:['#ffe0c2','#e39a5c','#9a5524','#2ea44f']}[n]||['#fff','#ccc','#888','#555'];
+  const sp=document.createElement('span'); sp.className='medal'; sp.setAttribute('role','img'); sp.setAttribute('aria-label','Puesto '+n);
+  sp.innerHTML='<svg viewBox="0 0 64 84" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><radialGradient id="mg'+u+'" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="'+P[0]+'"/><stop offset=".55" stop-color="'+P[1]+'"/><stop offset="1" stop-color="'+P[2]+'"/></radialGradient></defs>'
+   +'<path d="M17 2 L32 40 L24 44 L8 6Z" fill="'+P[3]+'"/><path d="M47 2 L32 40 L40 44 L56 6Z" fill="'+P[3]+'" opacity=".85"/><path d="M17 2 L25 2 L36 30 L32 40Z" fill="#fff" opacity=".2"/>'
+   +'<circle cx="32" cy="53" r="24" fill="'+P[2]+'"/><circle cx="32" cy="52" r="22" fill="url(#mg'+u+')" stroke="#2b1a26" stroke-opacity=".55" stroke-width="1.6"/>'
+   +'<circle cx="32" cy="52" r="16.5" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="2.4 2.6"/>'
+   +'<path d="M16 46 Q22 32 38 31" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>'
+   +'<text x="32" y="60.5" text-anchor="middle" font-family="\'Lilita One\',Fredoka,system-ui,sans-serif" font-weight="900" font-size="26" fill="#3a2410" stroke="#fff" stroke-opacity=".55" stroke-width=".8" paint-order="stroke">'+n+'</text></svg>';
+  return sp;
+}
 function podium(b,r){
   const slot=i=>b[i]?el('div',{class:'pc','data-p':i+1},
-    el('div',{class:'who'},avNode(b[i][0]),b[i][0]),
-    el('div',{class:'sc',text:fmt(b[i][1])+' pts'}),
-    el('div',{class:'step',text:r[i]})):null;
+    el('div',{class:'who'},avNode(b[i][0],true)),
+    el('div',{class:'step'},medalNode(i+1),el('div',{class:'pn',text:b[i][0]}),el('div',{class:'sc',text:fmt(b[i][1])+' pts'}))):null;
   return el('div',{class:'podium'},slot(1),slot(0),slot(2));
 }
 function streakMilestone(n){ return n===3||(n>=5&&n%5===0); }
@@ -1376,7 +1398,7 @@ function buildHome(){
   return el('div',{class:'stack'},
     el('div',{class:'stack'},
       el('h1',{text:'¿Quién la tiene más clara?'}),
-      el('p',{class:'lead',text:'Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v28)'})),
+      el('p',{class:'lead',text:'Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v29)'})),
     msg?el('p',{class:'notice',role:'status',text:msg}):null,
     err?el('p',{class:'notice err',role:'alert',text:err}):null,
     buildAvPanel(),

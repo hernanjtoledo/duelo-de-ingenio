@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v31">
+<meta name="app-version" content="v32">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -74,6 +74,9 @@ p{margin:0}
 .panel.center{align-items:center;text-align:center}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
 .lead{color:var(--muted)}
+.sndb{position:fixed;top:10px;right:10px;z-index:70;width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.25);background:rgba(20,12,60,.72);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.sndb[aria-pressed="true"]{color:#ffd23f;border-color:#ffd23f}
+.sndb:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .copy{color:var(--muted);font-size:.75rem;text-align:center;opacity:.8;margin:.5rem 0 0}
 .lab{font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field{display:flex;flex-direction:column;gap:6px}
@@ -271,7 +274,7 @@ let BV=hid(BANK.map(q=>q.id).join(',')+'|'+PROTO);
 async function loadFotos(){
   try{
     const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),2500);
-    const res=await fetch('fotos/fotos.json?v=31',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
+    const res=await fetch('fotos/fotos.json?v=32',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
     if(!res.ok) return;
     const L=await res.json(); if(!Array.isArray(L)) return;
     const items=L.filter(e=>e&&typeof e.n==='string'&&e.n.trim()&&typeof e.f==='string'&&e.f.trim()).map(e=>({n:e.n.trim(),f:e.f.trim(),g:String(e.g||'general'),t:e.t==='personaje'?'personaje':'persona',d:typeof e.d==='string'?e.d.trim():'',lv:({e:0,m:1,h:2})[e.lv]!=null?({e:0,m:1,h:2})[e.lv]:1,cat:(typeof e.cat==='string'&&CATS.indexOf(e.cat)>=0)?CATS.indexOf(e.cat):15}));
@@ -300,7 +303,7 @@ let lobby=null, lobbyState='pending';
 let room=null, unsub=null, unsubConn=null;
 let role=null, pin='', G=null, Pl=null;
 let inPin='', inNick='', selTotal=10, err='', lastKey='', screen='home', screen0='', cfgOpen=false;
-let deadline=0, limMs=1, rafId=0, expired=false;
+let deadline=0, limMs=1, rafId=0, expired=false, lastSec=-1;
 
 try{ inNick=localStorage.getItem('di-nick')||''; }catch(e){}
 function lsGet(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
@@ -624,11 +627,124 @@ function setStat(ok){
   stat.setAttribute('data-ok',ok?'1':'0');
 }
 
+/* ---------- sonido: todo generado por código (sin archivos de audio de terceros) ---------- */
+const SND=(function(){
+  let ctx=null,out=null,mus=null,wet=null,pad=null,lead=null,timer=0,wanted=false,nextT=0,step=0,btn=null;
+  let muted=!!lsGet('di-mute',false);
+  const BPM=76, E=60/BPM/2, MV=.3;
+  const mtof=m=>440*Math.pow(2,(m-69)/12);
+  /* melodía propia: 8 compases, escala pentatónica de Do mayor. [nota MIDI (0=silencio), duración en corcheas] */
+  const MEL=[
+    [[64,2],[67,1],[69,1],[67,2],[64,2]],
+    [[69,2],[67,1],[64,1],[62,2],[60,2]],
+    [[62,2],[64,1],[67,1],[64,2],[62,2]],
+    [[60,4],[62,1],[64,1],[0,2]],
+    [[67,2],[69,1],[72,1],[69,2],[67,2]],
+    [[64,2],[67,1],[69,1],[67,2],[64,2]],
+    [[69,2],[67,1],[64,1],[62,2],[64,2]],
+    [[60,6],[0,2]]
+  ];
+  const CH=[[60,64,67],[57,60,64],[57,60,65],[55,59,62],[60,64,67],[57,60,64],[57,60,65],[55,59,62]];
+  const BASS=[48,45,41,43,48,45,41,43];
+  const EV=[]; for(let i=0;i<64;i++) EV.push([]);
+  MEL.forEach((bar,b)=>{ let p=b*8; bar.forEach(([n,d])=>{ if(n) EV[p].push([n,d]); p+=d; }); });
+  function build(c){
+    const o=c.createGain(); o.gain.value=muted?0:1; o.connect(c.destination);
+    const m=c.createGain(); m.gain.value=MV; m.connect(o);
+    const w=c.createGain(); w.gain.value=.34; w.connect(o);
+    const dl=c.createDelay(1); dl.delayTime.value=E*3;
+    const fb=c.createGain(); fb.gain.value=.3;
+    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1700;
+    m.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(w);
+    const pf=c.createBiquadFilter(); pf.type='lowpass'; pf.frequency.value=950; pf.connect(m);
+    const lf=c.createBiquadFilter(); lf.type='lowpass'; lf.frequency.value=2600; lf.connect(m);
+    return {o,m,w,pf,lf};
+  }
+  function ensure(){
+    if(ctx) return true;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
+    try{ ctx=new AC(); }catch(e){ return false; }
+    const g=build(ctx); out=g.o; mus=g.m; pad=g.pf; lead=g.lf;
+    return true;
+  }
+  function tone(c,f,t,d,type,g,dest,a,r){
+    const o=c.createOscillator(), e=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t);
+    e.gain.setValueAtTime(.0001,t);
+    e.gain.linearRampToValueAtTime(g,t+a);
+    e.gain.setValueAtTime(g,t+Math.max(a,d-r));
+    e.gain.exponentialRampToValueAtTime(.0001,t+d+.02);
+    o.connect(e); e.connect(dest); o.start(t); o.stop(t+d+.05);
+    return o;
+  }
+  function playStep(c,g,s,t){
+    const bar=Math.floor(s/8), k=s%8;
+    if(k===0){ CH[bar].forEach(n=>tone(c,mtof(n),t,E*8,'sine',.05,g.pf,.7,1.4)); }
+    if(k===0||k===4) tone(c,mtof(BASS[bar]),t,E*3.4,'sine',k===0?.17:.11,g.m,.03,.6);
+    EV[s].forEach(([n,d])=>tone(c,mtof(n),t,E*d*.95,'triangle',.13,g.lf,.025,.35));
+  }
+  function sched(){
+    if(!ctx||ctx.state!=='running'){ return; }
+    while(nextT<ctx.currentTime+.4){ playStep(ctx,{pf:pad,m:mus,lf:lead},step,nextT); nextT+=E; step=(step+1)%64; }
+  }
+  function startSched(){
+    if(timer||!ctx||muted) return;
+    nextT=ctx.currentTime+.15; step=0;
+    mus.gain.cancelScheduledValues(ctx.currentTime); mus.gain.setTargetAtTime(MV,ctx.currentTime,.05);
+    timer=setInterval(sched,90); sched();
+  }
+  function stopSched(){
+    if(timer){ clearInterval(timer); timer=0; }
+    if(ctx&&mus) mus.gain.setTargetAtTime(0,ctx.currentTime,.12);
+  }
+  function unlock(){
+    if(!ensure()) return;
+    if(ctx.state!=='running'){ ctx.resume().then(()=>{ if(wanted&&!muted) startSched(); }).catch(()=>{}); }
+    else if(wanted&&!muted&&!timer) startSched();
+  }
+  ['pointerdown','touchend','keydown','click'].forEach(ev=>document.addEventListener(ev,unlock,{passive:true}));
+  document.addEventListener('visibilitychange',()=>{ if(!ctx) return; if(document.hidden) ctx.suspend().catch(()=>{}); else ctx.resume().catch(()=>{}); });
+  function sfx(fn){ if(muted||!ensure()||ctx.state!=='running') return; try{ fn(ctx.currentTime); }catch(e){} }
+  const api={
+    get muted(){ return muted; },
+    music(on){ wanted=on; if(on){ unlock(); } else stopSched(); },
+    click(){ sfx(t=>{ const o=tone(ctx,520,t,.1,'sine',.3,out,.005,.07); o.frequency.exponentialRampToValueAtTime(820,t+.08); tone(ctx,1040,t,.06,'sine',.06,out,.004,.04); }); },
+    tick(n){ sfx(t=>{ tone(ctx,n%2?1050:780,t,.05,'sine',.26,out,.002,.04); tone(ctx,n%2?2100:1560,t,.03,'sine',.05,out,.002,.02); }); },
+    timeup(){ sfx(t=>{ tone(ctx,440,t,.22,'triangle',.24,out,.01,.14); tone(ctx,330,t+.2,.4,'triangle',.24,out,.01,.28); }); },
+    setMuted(m){
+      muted=!!m; lsSet('di-mute',muted);
+      if(ctx&&out) out.gain.setTargetAtTime(muted?0:1,ctx.currentTime,.03);
+      if(muted) stopSched(); else if(wanted){ unlock(); }
+      paint();
+    },
+    toggle(){ api.setMuted(!muted); },
+    mount(){
+      btn=document.createElement('button'); btn.type='button'; btn.className='sndb';
+      btn.onclick=()=>api.toggle();
+      document.body.appendChild(btn); paint();
+    },
+    /* solo para pruebas: renderiza la música sin conexión y devuelve las muestras */
+    async _r(sec){
+      const sr=22050, oc=new OfflineAudioContext(1,sr*sec,sr), g=build(oc); g.o.gain.value=1;
+      let t=.05, s=0; while(t<sec-.5){ playStep(oc,g,s,t); t+=E; s=(s+1)%64; }
+      const b=await oc.startRendering(); return Array.from(b.getChannelData(0));
+    }
+  };
+  function paint(){
+    if(!btn) return;
+    btn.setAttribute('aria-pressed',String(muted));
+    btn.setAttribute('aria-label',muted?'Activar sonido':'Silenciar sonido');
+    btn.title=muted?'Activar sonido':'Silenciar sonido';
+    btn.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>'+(muted?'<path d="M17 9l5 6M22 9l-5 6"/>':'<path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>')+'</svg>';
+  }
+  return api;
+})();
+
 /* ---------- reloj (barra + número) ---------- */
 function startClock(lim){
   limMs=lim*1000;
   deadline=performance.now()+limMs;
-  expired=false;
+  expired=false; lastSec=-1;
   cancelAnimationFrame(rafId);
   rafId=requestAnimationFrame(frame);
 }
@@ -636,13 +752,20 @@ function stopClock(){
   deadline=0;
   cancelAnimationFrame(rafId);
 }
+function clockMine(){
+  if(role==='player') return !!Pl&&Pl.choice===null;
+  if(role==='host') return !G||!G.me||G.myChoice===null;
+  return false;
+}
 function frame(){
   if(!deadline) return;
   const left=Math.max(0,deadline-performance.now());
   const fill=document.getElementById('barfill'), clk=document.getElementById('clock');
   if(fill) fill.style.transform='scaleX('+(left/limMs)+')';
   if(clk) clk.textContent=Math.ceil(left/1000);
-  if(left<=0){ expired=true; render(); return; }
+  const sec=Math.ceil(left/1000);
+  if(sec!==lastSec){ lastSec=sec; if(sec>0&&sec<=5&&clockMine()) SND.tick(sec); }
+  if(left<=0){ expired=true; if(clockMine()) SND.timeup(); render(); return; }
   rafId=requestAnimationFrame(frame);
 }
 
@@ -762,7 +885,7 @@ function leaveAll(){
   try{ if(unsub) unsub(); if(unsubConn) unsubConn(); }catch(e){}
   unsub=null; unsubConn=null;
   const r=room;
-  room=null; role=null; G=null; Pl=null; pin=''; screen='home'; screen0=''; cfgOpen=false;
+  room=null; role=null; G=null; Pl=null; pin=''; screen='home'; screen0=''; cfgOpen=false; SND.music(false);
   if(r) r.leave().catch(()=>{});
   setStat(false);
   render();
@@ -811,7 +934,7 @@ async function createGame(){
   if(hostPlay&&!hn){ err='Escribí tu apodo para jugar vos también, o desactivá «Quiero jugar yo también».'; render(); return; }
   if(hostPlay) lsSet('di-hnick',hn);
   screen0='create'; pin=String(Math.floor(100000+Math.random()*900000));
-  role='host';
+  role='host'; SND.music(true);
   G={ready:false,ph:'lobby',gen:1,seq:0,qn:-1,order:makeOrder(selTotal),want:selTotal,total:0,lim:20,
      locked:new Map(),scores:new Map(),ok:null,dist:[0,0,0,0],board:[],timer:0,early:false};
   G.total=G.order.length;
@@ -1014,14 +1137,14 @@ function playAgain(){
 }
 function hostAnswer(i){
   if(!G||!G.me||G.ph!=='q'||G.myChoice!==null||expired) return;
-  G.myChoice=i;
+  G.myChoice=i; SND.click();
   G.myA={s:G.seq,c:i,ms:Math.round(Math.max(0,performance.now()-G.t0))};
   collect();
   render();
 }
 function hostNum(v){
   if(!G||!G.me||G.ph!=='q'||G.myChoice!==null||expired||!Number.isFinite(v)) return;
-  G.myChoice=v;
+  G.myChoice=v; SND.click();
   G.myA={s:G.seq,v:v,ms:Math.round(Math.max(0,performance.now()-G.t0))};
   collect();
   render();
@@ -1078,7 +1201,7 @@ function answer(i){
   const H=hostPresence();
   if(!H||!Pl||H.ph!=='q'||Pl.choice!==null||Pl.seq!==H.seq||Pl.seq===Pl.skipSeq||expired) return;
   const ms=Math.max(0,performance.now()-Pl.t0);
-  Pl.choice=i;
+  Pl.choice=i; SND.click();
   room.presence({a:{s:H.seq,c:i,ms:Math.round(ms)}}).catch(()=>{});
   render();
 }
@@ -1113,7 +1236,7 @@ function answerNum(v){
   const H=hostPresence();
   if(!H||!Pl||H.ph!=='q'||Pl.choice!==null||Pl.seq!==H.seq||Pl.seq===Pl.skipSeq||expired||!Number.isFinite(v)) return;
   const ms=Math.max(0,performance.now()-Pl.t0);
-  Pl.choice=v; Pl.myNum=v;
+  Pl.choice=v; Pl.myNum=v; SND.click();
   room.presence({a:{s:H.seq,v:v,ms:Math.round(ms)}}).catch(()=>{});
   render();
 }
@@ -1394,7 +1517,7 @@ function buildHome(){
     el('p',{class:'lead',text:'Proyectá esta pantalla y los demás juegan desde el celular.'}),
     el('button',{class:'btn ghost',type:'button',disabled:!ready,onclick:()=>goScreen('create'),text:'Crear partida'}));
   return el('div',{class:'stack'},
-    head('Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v31)'),
+    head('Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v32)'),
     el('div',{class:'grid2'},join,make),
     copyLine());
 }
@@ -1642,6 +1765,7 @@ function render(){
 }
 
 /* ---------- arranque ---------- */
+SND.mount();
 lobby=window.Peer?Net:null;
 lobbyState=lobby?'ready':'none';
 loadFotos().then(()=>render());

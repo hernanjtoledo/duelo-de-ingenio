@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v30">
+<meta name="app-version" content="v31">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -271,7 +271,7 @@ let BV=hid(BANK.map(q=>q.id).join(',')+'|'+PROTO);
 async function loadFotos(){
   try{
     const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),2500);
-    const res=await fetch('fotos/fotos.json?v=30',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
+    const res=await fetch('fotos/fotos.json?v=31',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
     if(!res.ok) return;
     const L=await res.json(); if(!Array.isArray(L)) return;
     const items=L.filter(e=>e&&typeof e.n==='string'&&e.n.trim()&&typeof e.f==='string'&&e.f.trim()).map(e=>({n:e.n.trim(),f:e.f.trim(),g:String(e.g||'general'),t:e.t==='personaje'?'personaje':'persona',d:typeof e.d==='string'?e.d.trim():'',lv:({e:0,m:1,h:2})[e.lv]!=null?({e:0,m:1,h:2})[e.lv]:1,cat:(typeof e.cat==='string'&&CATS.indexOf(e.cat)>=0)?CATS.indexOf(e.cat):15}));
@@ -299,7 +299,7 @@ const stat=document.getElementById('stat');
 let lobby=null, lobbyState='pending';
 let room=null, unsub=null, unsubConn=null;
 let role=null, pin='', G=null, Pl=null;
-let inPin='', inNick='', selTotal=10, err='', lastKey='';
+let inPin='', inNick='', selTotal=10, err='', lastKey='', screen='home', screen0='', cfgOpen=false;
 let deadline=0, limMs=1, rafId=0, expired=false;
 
 try{ inNick=localStorage.getItem('di-nick')||''; }catch(e){}
@@ -762,12 +762,12 @@ function leaveAll(){
   try{ if(unsub) unsub(); if(unsubConn) unsubConn(); }catch(e){}
   unsub=null; unsubConn=null;
   const r=room;
-  room=null; role=null; G=null; Pl=null; pin='';
+  room=null; role=null; G=null; Pl=null; pin=''; screen='home'; screen0=''; cfgOpen=false;
   if(r) r.leave().catch(()=>{});
   setStat(false);
   render();
 }
-function fail(msg){ err=msg; leaveAll(); }
+function fail(msg){ const s=screen0; err=msg; leaveAll(); if(s) screen=s; render(); }
 function onPeers(){
   if(!room) return;
   if(role==='host'&&G){ if(G.ph==='q') collect(); else if(G.ph==='pick') checkPick(); render(); fillFeed(); }
@@ -810,7 +810,7 @@ async function createGame(){
   const hn=clean(hostNick);
   if(hostPlay&&!hn){ err='Escribí tu apodo para jugar vos también, o desactivá «Quiero jugar yo también».'; render(); return; }
   if(hostPlay) lsSet('di-hnick',hn);
-  pin=String(Math.floor(100000+Math.random()*900000));
+  screen0='create'; pin=String(Math.floor(100000+Math.random()*900000));
   role='host';
   G={ready:false,ph:'lobby',gen:1,seq:0,qn:-1,order:makeOrder(selTotal),want:selTotal,total:0,lim:20,
      locked:new Map(),scores:new Map(),ok:null,dist:[0,0,0,0],board:[],timer:0,early:false};
@@ -1036,9 +1036,9 @@ function updateCount(){
 async function joinGame(){
   if(!lobby||role) return;
   const nm=clean(inNick), p=inPin;
-  if(p.length!==6){ err='Escribí el PIN de 6 dígitos.'; render(); return; }
+  if(p.length!==6){ err='Escribí el PIN de 6 dígitos.'; screen='home'; render(); return; }
   if(!nm){ err='Elegí un apodo para jugar.'; render(); return; }
-  err='';
+  err=''; screen0='join';
   try{ localStorage.setItem('di-nick',nm); }catch(e){}
   inNick=nm; pin=p; role='player';
   Pl={name:nm,av:selAv,hostSeen:false,seq:-1,skipSeq:-1,choice:null,t0:0,goneAt:0,timer:0};
@@ -1366,46 +1366,86 @@ function buildAvPanel(){
     row('Gorro','h',HATK,HAT,a.h), row('Lentes','g',GLAK,GLA,a.g), row('Extra','e',EXAK,EXA,a.e),
     row('Expresión','x',EXPK,EXP,a.x), row('Ropa','k',CLOK,CLO,a.k), row('Fondo','b',BGK,BGS,a.b));
 }
+function connMsg(){
+  return lobbyState==='pending'?'Conectando con la sala en vivo…'
+    :lobbyState==='none'?'No se pudo cargar el servicio de conexión. Revisá tu internet y recargá la página.':'';
+}
+function goScreen(s){ err=''; screen=s; render(); }
+function head(sub){
+  return el('div',{class:'stack'},
+    el('h1',{text:'¿Quién la tiene más clara?'}),
+    el('p',{class:'lead',text:sub}),
+    connMsg()?el('p',{class:'notice',role:'status',text:connMsg()}):null,
+    err?el('p',{class:'notice err',role:'alert',text:err}):null);
+}
+function copyLine(){ return el('p',{class:'copy',text:'Ingenia © 2026 Hernán Toledo · Todos los derechos reservados'}); }
 function buildHome(){
   const ready=lobbyState==='ready';
-  const msg=lobbyState==='pending'?'Conectando con la sala en vivo…'
-    :lobbyState==='none'?'No se pudo cargar el servicio de conexión. Revisá tu internet y recargá la página.':'';
-  const pinIn=el('input',{id:'pin',class:'inp',type:'text',inputmode:'numeric',maxlength:'6',autocomplete:'off',placeholder:'000000',value:inPin,
+  const pinIn=el('input',{id:'pin',class:'inp',type:'text',inputmode:'numeric',maxlength:'6',autocomplete:'off',placeholder:'PIN de la partida',value:inPin,
     oninput:e=>{inPin=e.target.value.replace(/\D/g,'').slice(0,6);e.target.value=inPin;}});
+  const go=()=>{ if(inPin.length!==6){ err='Escribí el PIN de 6 dígitos.'; screen='home'; render(); return; } goScreen('join'); };
+  const join=el('form',{class:'panel',onsubmit:e=>{e.preventDefault();go();}},
+    el('h2',{text:'Unirme a una partida'}),
+    el('p',{class:'lead',text:'Pedile el PIN a quien organiza.'}),
+    pinIn,
+    el('button',{class:'btn',type:'submit',disabled:!ready,text:'Unirme'}));
+  const make=el('section',{class:'panel'},
+    el('h2',{text:'Organizar una partida'}),
+    el('p',{class:'lead',text:'Proyectá esta pantalla y los demás juegan desde el celular.'}),
+    el('button',{class:'btn ghost',type:'button',disabled:!ready,onclick:()=>goScreen('create'),text:'Crear partida'}));
+  return el('div',{class:'stack'},
+    head('Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v31)'),
+    el('div',{class:'grid2'},join,make),
+    copyLine());
+}
+function buildJoin(){
+  const ready=lobbyState==='ready';
   const nickIn=el('input',{id:'nick',class:'inp',type:'text',maxlength:'14',autocomplete:'nickname',placeholder:'Tu apodo',value:inNick,
     oninput:e=>{inNick=e.target.value;}});
-  const join=el('form',{class:'panel',onsubmit:e=>{e.preventDefault();joinGame();}},
-    el('h2',{text:'Unirme a una partida'}),
-    el('p',{class:'lead',text:'Pedile el PIN a quien organiza y elegí un apodo.'}),
-    el('div',{class:'field'},el('label',{class:'lab','for':'pin',text:'PIN'}),pinIn),
-    el('div',{class:'field'},el('label',{class:'lab','for':'nick',text:'Apodo'}),nickIn),
-    el('button',{class:'btn',type:'submit',disabled:!ready,text:'Entrar'}));
+  return el('div',{class:'stack'},
+    head('Partida '+inPin+'. Elegí tu avatar y tu apodo.'),
+    buildAvPanel(),
+    el('form',{class:'panel',onsubmit:e=>{e.preventDefault();joinGame();}},
+      el('div',{class:'field'},el('label',{class:'lab','for':'nick',text:'Apodo'}),nickIn),
+      el('button',{class:'btn',type:'submit',disabled:!ready,text:'Unirme'}),
+      el('button',{class:'btn ghost',type:'button',onclick:()=>goScreen('home'),text:'Volver'})),
+    copyLine());
+}
+function configPanel(live){
+  const chg=()=>{ if(live) reorder(); render(); };
   const seg=el('div',{class:'seg',role:'group','aria-label':'Cantidad de preguntas'},
-    [10,20,30].map(n=>el('button',{type:'button','aria-pressed':String(selTotal===n),onclick:()=>{selTotal=n;render();},text:n+' preguntas'})));
-  const host=el('section',{class:'panel'},
-    el('h2',{text:'Crear una partida'}),
-    el('p',{class:'lead',text:'Proyectá esta pantalla y los demás juegan desde el celular. Elegí las categorías: las preguntas se mezclan y se evita repetir las que ya jugaste en este dispositivo.'}),
+    [10,20,30].map(n=>el('button',{type:'button','aria-pressed':String(selTotal===n),onclick:()=>{selTotal=n;chg();},text:n+' preguntas'})));
+  return el('section',{class:'panel'},
+    el('h2',{text:'Preguntas'}),
+    el('p',{class:'lead',text:'Elegí cuántas, el nivel y las categorías: las preguntas se mezclan y se evita repetir las que ya jugaste en este dispositivo.'}),
     seg,
     el('div',{class:'seg',role:'group','aria-label':'Nivel'},
-      [[-1,'Todos'],[0,'Fácil'],[1,'Medio'],[2,'Difícil']].map(x=>el('button',{type:'button','aria-pressed':String(selLv===x[0]),onclick:()=>{selLv=x[0];lsSet('di-lv',selLv);render();},text:x[1]}))),
+      [[-1,'Todos'],[0,'Fácil'],[1,'Medio'],[2,'Difícil']].map(x=>el('button',{type:'button','aria-pressed':String(selLv===x[0]),onclick:()=>{selLv=x[0];lsSet('di-lv',selLv);chg();},text:x[1]}))),
     el('div',{class:'cats',role:'group','aria-label':'Categorías'},
-      CATS.map((n,i)=>el('button',{type:'button',class:'catb','aria-pressed':String(selCats.has(i)),onclick:()=>{toggleCat(i);render();},text:n+' · '+catStats(i).all}))),
+      CATS.map((n,i)=>el('button',{type:'button',class:'catb','aria-pressed':String(selCats.has(i)),onclick:()=>{toggleCat(i);chg();},text:n+' · '+catStats(i).all}))),
     el('p',{class:'lead',text:histText()}),
     el('div',{class:'actions'},
-      el('button',{class:'btn ghost',type:'button',onclick:()=>{CATS.forEach((_,i)=>selCats.add(i));lsSet('di-cats3',[...selCats]);render();},text:'Todas'}),
-      el('button',{class:'btn ghost',type:'button',disabled:!seen.size,onclick:()=>{seen.clear();lsSet('di-seen',[]);render();},text:'Reiniciar historial'})),
-    el('label',{class:'chk'},el('input',{type:'checkbox',checked:hostPlay,onchange:e=>{hostPlay=e.target.checked;lsSet('di-hp',hostPlay);render();}}),el('span',{text:'Quiero jugar yo también'})),
-    hostPlay?el('input',{id:'hnick',class:'inp',type:'text',maxlength:'14',autocomplete:'off',placeholder:'Tu apodo como jugador',value:hostNick,oninput:e=>{hostNick=e.target.value;}}):null,
-    el('button',{class:'btn',type:'button',disabled:!ready,onclick:createGame,text:'Crear partida'}));
+      el('button',{class:'btn ghost',type:'button',onclick:()=>{CATS.forEach((_,i)=>selCats.add(i));lsSet('di-cats3',[...selCats]);chg();},text:'Todas'}),
+      el('button',{class:'btn ghost',type:'button',disabled:!seen.size,onclick:()=>{seen.clear();lsSet('di-seen',[]);chg();},text:'Reiniciar historial'})));
+}
+function reorder(){
+  if(!G||G.ph!=='lobby') return;
+  G.order=makeOrder(selTotal); G.want=selTotal; G.total=G.order.length;
+  pubHost();
+}
+function buildCreate(){
+  const ready=lobbyState==='ready';
   return el('div',{class:'stack'},
-    el('div',{class:'stack'},
-      el('h1',{text:'¿Quién la tiene más clara?'}),
-      el('p',{class:'lead',text:'Trivia, acertijos y más de 34.000 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v30)'})),
-    msg?el('p',{class:'notice',role:'status',text:msg}):null,
-    err?el('p',{class:'notice err',role:'alert',text:err}):null,
-    buildAvPanel(),
-    el('div',{class:'grid2'},join,host),
-    el('p',{class:'copy',text:'Ingenia © 2026 Hernán Toledo · Todos los derechos reservados'}));
+    head('Armá la partida. Cuando la crees vas a ver el PIN para compartir.'),
+    el('section',{class:'panel'},
+      el('label',{class:'chk'},el('input',{type:'checkbox',checked:hostPlay,onchange:e=>{hostPlay=e.target.checked;lsSet('di-hp',hostPlay);render();}}),el('span',{text:'Quiero jugar yo también'})),
+      hostPlay?el('input',{id:'hnick',class:'inp',type:'text',maxlength:'14',autocomplete:'off',placeholder:'Tu apodo como jugador',value:hostNick,oninput:e=>{hostNick=e.target.value;}}):null),
+    hostPlay?buildAvPanel():null,
+    configPanel(false),
+    el('div',{class:'actions'},
+      el('button',{class:'btn',type:'button',disabled:!ready,onclick:createGame,text:'Crear partida'}),
+      el('button',{class:'btn ghost',type:'button',onclick:()=>goScreen('home'),text:'Volver'})),
+    copyLine());
 }
 function buildConnecting(){
   return el('section',{class:'panel center'},
@@ -1419,12 +1459,14 @@ function buildHostLobby(){
     el('section',{class:'panel center'},
       el('span',{class:'lab',text:'PIN de la partida'}),
       el('div',{class:'pin',text:pin}),
-      el('p',{class:'lead',text:'Los jugadores abren este mismo enlace, tocan «Unirme a una partida» y escriben el PIN.'})),
+      el('p',{class:'lead',text:'Los jugadores abren este mismo enlace, tocan «Unirme» y escriben el PIN.'})),
     el('section',{class:'panel'},
       el('h2',{text:'Jugadores ('+names.length+')'}),
       names.length?el('div',{class:'chips'},names.map(n=>el('span',{class:'chip'},avNode(n),n)))
         :el('p',{class:'lead',role:'status',text:'Todavía no entró nadie.'}),
       el('p',{class:'lead',text:'Cada acierto suma entre 500 y 1000 puntos según la rapidez, más 100 por cada acierto seguido (hasta 400). La tabla muestra a los primeros '+MAXB+'.'})),
+    el('button',{class:'btn ghost',type:'button','aria-expanded':String(cfgOpen),onclick:()=>{cfgOpen=!cfgOpen;render();},text:cfgOpen?'Ocultar configuración':'Cambiar cantidad y categorías'}),
+    cfgOpen?configPanel(true):null,
     el('div',{class:'actions'},
       el('button',{class:'btn',type:'button',disabled:!names.length,onclick:startGame,text:'Empezar ('+G.order.length+' preguntas)'}),
       el('button',{class:'btn ghost',type:'button',onclick:leaveAll,text:'Cancelar'})));
@@ -1561,16 +1603,16 @@ function buildHostGone(){
     el('button',{class:'btn',type:'button',onclick:leaveAll,text:'Volver al inicio'}));
 }
 const BUILD={
-  home:buildHome, connecting:buildConnecting, hostLobby:buildHostLobby, hostQ:buildHostQ, hostRev:buildHostRev,
+  home:buildHome, create:buildCreate, join:buildJoin, connecting:buildConnecting, hostLobby:buildHostLobby, hostQ:buildHostQ, hostRev:buildHostRev,
   hostEnd:buildHostEnd, pLobby:buildPLobby, pQ:buildPQ, pRev:buildPRev, pEnd:buildPEnd, hostWait:buildHostWait, hostPick:buildHostPick, pPick:buildPPick, hostGone:buildHostGone
 };
 
 /* ---------- qué pantalla toca ---------- */
 function view(){
-  if(!role) return {n:'home',k:[lobbyState,err,selAv,selLv,hostPlay?1:0,selTotal,[...selCats].join(','),seen.size,bad.size].join('|')};
+  if(!role) return {n:screen==='create'||screen==='join'?screen:'home',k:[screen,lobbyState,err,selAv,selLv,hostPlay?1:0,selTotal,[...selCats].join(','),seen.size,bad.size].join('|')};
   if(role==='host'){
     if(!G||!G.ready) return {n:'connecting',k:'c'};
-    if(G.ph==='lobby') return {n:'hostLobby',k:playerNames().join('\u0001')+'|'+G.order.length};
+    if(G.ph==='lobby') return {n:'hostLobby',k:playerNames().join('\u0001')+'|'+G.order.length+'|'+(cfgOpen?1:0)+'|'+selTotal+'|'+selLv+'|'+[...selCats].join(',')+'|'+seen.size};
     if(G.ph==='pick') return {n:'hostPick',k:String(G.pickSeq)};
     if(G.ph==='q') return {n:'hostQ',k:G.seq+'|'+G.myChoice+'|'+(expired?1:0)};
     if(G.ph==='rev') return {n:'hostRev',k:G.seq+'|'+(bad.has(BANK[G.order[G.qn]].id)?1:0)};

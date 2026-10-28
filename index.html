@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v35.3">
+<meta name="app-version" content="v35.4">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -274,7 +274,7 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .pickb .pke{font-size:1.6rem}
 .tag.pb{background:#ff7a18;color:#2a1200}
 
-/* ===== Edición Halloween (v35.3) ===== */
+/* ===== Edición Halloween (v35.4) ===== */
 :root{--bg:#160c36;--bg-2:#2a1a66;--panel:#37238a;--line:#6a4fc4;--ink:#f8f2ff;--muted:#cfc2f0;--gold:#ff9a2a;--on-gold:#1f0e00}
 body{background-color:#1d0f4a;background-image:none}
 .hwbg{position:fixed;inset:0;z-index:0;pointer-events:none;background:#1d0f4a}
@@ -343,7 +343,7 @@ let BV=hid(BANK.map(q=>q.id).join(',')+'|'+PROTO);
 async function loadFotos(){
   try{
     const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),2500);
-    const res=await fetch('fotos/fotos.json?v=35.3',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
+    const res=await fetch('fotos/fotos.json?v=35.4',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
     if(!res.ok) return;
     const L=await res.json(); if(!Array.isArray(L)) return;
     const items=L.filter(e=>e&&typeof e.n==='string'&&e.n.trim()&&typeof e.f==='string'&&e.f.trim()).map(e=>({n:e.n.trim(),f:e.f.trim(),g:String(e.g||'general'),t:e.t==='personaje'?'personaje':'persona',d:typeof e.d==='string'?e.d.trim():'',lv:({e:0,m:1,h:2})[e.lv]!=null?({e:0,m:1,h:2})[e.lv]:1,cat:(typeof e.cat==='string'&&CATS.indexOf(e.cat)>=0)?CATS.indexOf(e.cat):15}));
@@ -957,8 +957,8 @@ function hostRoom(code){
 function joinRoom(code){
   return new Promise((resolve,reject)=>{
     const hostId=PREFIX+code, r=baseRoom(), mine={};
-    let remote=[], conn=null, opened=false, closed=false, peer=null, rt=0, tries=0;
-    const timer=setTimeout(()=>{ if(!opened){ closed=true; try{ peer.destroy(); }catch(e){} reject({type:'timeout'}); } },12000);
+    let remote=[], conn=null, opened=false, closed=false, peer=null, rt=0, tries=0, att=0;
+    const timer=setTimeout(()=>{ if(!opened){ closed=true; try{ peer.destroy(); }catch(e){} reject({type:'timeout'}); } },30000);
     r.rec=false;
     r.peers=()=>remote.map(x=>({peer:x.peer,kind:'viewer',isMe:!!peer&&x.peer===peer.id,presence:x.presence||{}}));
     r.presence=patch=>{
@@ -986,8 +986,8 @@ function joinRoom(code){
     const connect=()=>{
       if(closed||!peer||!peer.open) return;
       let c; try{ c=peer.connect(hostId,{reliable:true,serialization:'json'}); }catch(e){ lost(); return; }
-      conn=c; let up=false;
-      const guard=setTimeout(()=>{ if(!up&&conn===c){ try{ c.close(); }catch(e){} lost(); } },9000);
+      conn=c; let up=false; att++;
+      const guard=setTimeout(()=>{ if(!up&&conn===c){ try{ c.close(); }catch(e){} if(opened) lost(); else if(att<2&&!closed) connect(); } },opened?9000:13000);
       c.on('open',()=>{
         up=true; clearTimeout(guard);
         if(conn!==c||closed) return;
@@ -1384,9 +1384,9 @@ async function joinGame(){
   inNick=nm; pin=p; role='player'; SND.music(true);
   Pl={name:nm,av:selAv,hostSeen:false,seq:-1,skipSeq:-1,choice:null,t0:0,goneAt:0,timer:0};
   render();
-  let r;
-  try{ r=await lobby.join(p); }
-  catch(e){ fail(e&&e.type==='peer-unavailable'?'No encontramos una partida con ese PIN.':'No se pudo conectar. Revisá tu internet y probá de nuevo.'); return; }
+  let r; connSlow=false; const slowT=setTimeout(()=>{ if(role==='player'&&!room){ connSlow=true; const sl=document.querySelector('p.lead[role=status]'); if(sl) sl.textContent='Sigue intentando… Si tarda, probá apagar el WiFi y usar datos móviles.'; } },10000);
+  try{ r=await lobby.join(p); clearTimeout(slowT); connSlow=false; }
+  catch(e){ clearTimeout(slowT); connSlow=false; fail(e&&e.type==='peer-unavailable'?'No encontramos una partida con ese PIN.':'No se pudo conectar. Probá apagar el WiFi y usar datos móviles (o pedile lo mismo a quien creó la partida). Si sigue igual, revisá tu internet.'); return; }
   if(role!=='player'||!Pl){ r.leave().catch(()=>{}); return; }
   room=r; saveLast();
   r.onKick=()=>fail('Otra persona entró con tu mismo apodo.');
@@ -1745,7 +1745,7 @@ function buildHome(){
       el('button',{class:'btn',type:'button',disabled:!ready,onclick:()=>{ inNick=last.name; inPin=last.pin; if(last.av) selAv=last.av; joinGame(); },text:'Volver a la partida'}),
       el('button',{class:'btn ghost',type:'button',onclick:()=>{ try{ localStorage.removeItem('di-last'); }catch(e){} lastKey=''; render(); },text:'Descartar'}))):null;
   return el('div',{class:'stack'},
-    head('Trivia, acertijos y más de 34.500 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v35.3)'),
+    head('Trivia, acertijos y más de 34.500 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v35.4)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());
@@ -1799,10 +1799,11 @@ function buildCreate(){
       el('button',{class:'btn ghost',type:'button',onclick:()=>goScreen('home'),text:'Volver'})),
     copyLine());
 }
+let connSlow=false;
 function buildConnecting(){
   return el('section',{class:'panel center'},
     el('h2',{text:'Conectando…'}),
-    el('p',{class:'lead',role:'status',text:role==='host'?'Armando la sala.':'Buscando la partida.'}),
+    el('p',{class:'lead',role:'status',text:role==='host'?'Armando la sala.':(connSlow?'Sigue intentando… Si tarda, probá apagar el WiFi y usar datos móviles.':'Buscando la partida.')}),
     el('button',{class:'btn ghost',type:'button',onclick:leaveAll,text:'Cancelar'}));
 }
 function shareUrl(){ return location.origin+location.pathname+'?pin='+pin; }

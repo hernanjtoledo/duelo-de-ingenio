@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.2">
+<meta name="app-version" content="v36.3">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -32,11 +32,11 @@
   --muted:#c3bcf0;
   --gold:#ffd23f;
   --on-gold:#2a2000;
-  --a0:#e63e63;
-  --a1:#2a6fe6;
-  --a2:#f2b705;
-  --a3:#1e9a49;
-  --on-a2:#2a2000;
+  --a0:#d63384;
+  --a1:#18b6c9;
+  --a2:#ff9f1c;
+  --a3:#7bd44a;
+  --on-a2:#3a2200;--on-a1:#06303a;--on-a3:#173300;
   --good:#46e08a;
   --bad:#ff6b81;
   --display:'Lilita One','Arial Rounded MT Bold','Trebuchet MS',system-ui,sans-serif;
@@ -135,7 +135,7 @@ p{margin:0}
 .tag{font-weight:800;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:var(--bg-2);color:var(--muted)}
 .tag.r{color:var(--gold)}
 .qimg{display:flex;justify-content:center;margin:4px 0}
-.qimg img{display:block;width:min(100%,340px);max-height:34vh;object-fit:contain;border-radius:14px;background:#f3f4fa;padding:8px;box-sizing:border-box}
+.qimg img{display:block;width:min(100%,340px);max-height:25vh;object-fit:contain;border-radius:14px;background:#f3f4fa;padding:8px;box-sizing:border-box}
 .avs{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
 .avb{font-size:1.5rem;line-height:1;padding:6px 0;border-radius:10px;border:2px solid var(--line);background:transparent;cursor:pointer}
 .avb[aria-pressed="true"]{border-color:var(--gold);background:var(--bg-2)}
@@ -172,16 +172,45 @@ p{margin:0}
 button.opt{cursor:pointer;width:100%}
 button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .opt[data-i="0"]{background:var(--a0)}
-.opt[data-i="1"]{background:var(--a1)}
+.opt[data-i="1"]{background:var(--a1);color:var(--on-a1)}
 .opt[data-i="2"]{background:var(--a2);color:var(--on-a2)}
-.opt[data-i="3"]{background:var(--a3)}
+.opt[data-i="3"]{background:var(--a3);color:var(--on-a3)}
 .opt .otext{min-width:0}
 .shape{width:30px;height:30px;flex:none}
 .opt .count{margin-left:auto;font:400 1.6rem/1 var(--display);background:rgba(0,0,0,.25);border-radius:10px;padding:6px 12px;font-variant-numeric:tabular-nums}
 .opt .mark{margin-left:auto;font:400 1.7rem/1 var(--display)}
 .opt .count+.mark{margin-left:6px}
 .opt.dim{opacity:.32;box-shadow:none}
-.opt.ok{outline:5px solid var(--good);outline-offset:2px}
+.opt.ok{outline:5px solid #fff;outline-offset:2px;box-shadow:0 0 0 9px rgba(140,240,106,.55),0 6px 0 rgba(0,0,0,.3)}
+
+/* v36.3: pregunta a pantalla completa, barra fija, resultado personal */
+.stack.qfull{min-height:calc(100vh - 150px);min-height:calc(100dvh - 150px)}
+.qfull .q{flex:1 1 auto;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(1.9rem,6.4vw + .3rem,3.3rem);line-height:1.12;padding:20px 16px;background:rgba(18,8,48,.58);border-radius:22px;text-shadow:0 2px 0 rgba(0,0,0,.4);margin:0}
+.qfull .q.lg{font-size:clamp(1.5rem,4.8vw + .3rem,2.5rem)}
+.qfull .q.xl{font-size:clamp(1.2rem,3.6vw + .3rem,1.9rem)}
+.stack:not(.qfull) .opts{grid-template-columns:1fr 1fr}
+.stack:not(.qfull) .opts .opt{font-size:.9rem;padding-left:10px;padding-right:8px;gap:8px;overflow-wrap:normal;word-break:normal;hyphens:auto}
+.qfull .opts{grid-template-columns:1fr 1fr;margin-top:auto;gap:12px}
+.qfull .opt{flex-direction:column;align-items:flex-start;justify-content:space-between;min-height:clamp(108px,17vh,160px);font-size:clamp(1rem,2.8vw + .55rem,1.6rem);padding:14px 14px 16px}
+.qfull .opt .shape{width:34px;height:34px}
+.opt[data-i="1"],.opt[data-i="2"],.opt[data-i="3"]{text-shadow:none}
+.qfull .actions{background:rgba(11,7,36,.82);border-radius:16px;padding:8px 12px}
+.stack.pw{min-height:calc(100vh - 150px);min-height:calc(100dvh - 150px)}
+.pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;align-items:center;gap:6px;background:rgba(11,7,36,.93);border-radius:16px;padding:8px 14px calc(8px + env(safe-area-inset-bottom));font-weight:800;z-index:3;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
+.pfoot .av{font-size:1.15rem;margin-right:.2em}
+.pfoot .pn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfoot .pp{margin-left:auto;background:rgba(255,255,255,.14);border-radius:14px;padding:3px 12px;font-variant-numeric:tabular-nums}
+.sent{align-items:center;text-align:center;gap:10px;padding:30px 18px}
+.sent .lock{font-size:3.4rem;line-height:1;animation:sentpulse 1.6s ease-in-out infinite alternate}
+.sent .susp{font-style:italic;color:var(--muted)}
+@keyframes sentpulse{to{transform:scale(1.12) rotate(-4deg)}}
+.result .rav{font-size:3.6rem;margin:2px 0}
+.result.good .rav{animation:ravhop .7s ease-out}
+.result.bad .rav{filter:grayscale(.45) drop-shadow(0 2px 3px rgba(0,0,0,.38))}
+@keyframes ravhop{0%{transform:translateY(0) scale(.7)}40%{transform:translateY(-14px) scale(1.15)}70%{transform:translateY(0) scale(.96)}100%{transform:none}}
+.result .gain{background:rgba(11,7,36,.55);border-radius:14px;padding:8px 24px;color:#ffd166}
+.result .streakb{background:rgba(255,159,28,.25);border:1px solid #ff9f1c;border-radius:999px;padding:4px 14px;font-weight:800}
+@media (prefers-reduced-motion:reduce){.sent .lock,.result.good .rav{animation:none}}
 .note{background:var(--bg-2);border-radius:14px;padding:12px 16px}
 .cnt{font-weight:800;color:var(--muted)}
 .result{border-radius:22px;padding:28px 20px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
@@ -349,7 +378,7 @@ let BV=hid(BANK.map(q=>q.id).join(',')+'|'+PROTO);
 async function loadFotos(){
   try{
     const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),2500);
-    const res=await fetch('fotos/fotos.json?v=36.2',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
+    const res=await fetch('fotos/fotos.json?v=36.3',{signal:ctl.signal,cache:'no-cache'}); clearTimeout(tm);
     if(!res.ok) return;
     const L=await res.json(); if(!Array.isArray(L)) return;
     const items=L.filter(e=>e&&typeof e.n==='string'&&e.n.trim()&&typeof e.f==='string'&&e.f.trim()).map(e=>({n:e.n.trim(),f:e.f.trim(),g:String(e.g||'general'),t:e.t==='personaje'?'personaje':'persona',d:typeof e.d==='string'?e.d.trim():'',lv:({e:0,m:1,h:2})[e.lv]!=null?({e:0,m:1,h:2})[e.lv]:1,cat:(typeof e.cat==='string'&&CATS.indexOf(e.cat)>=0)?CATS.indexOf(e.cat):15}));
@@ -627,11 +656,11 @@ function shape(i){
   s.setAttribute('viewBox','0 0 24 24');
   s.setAttribute('class','shape');
   s.setAttribute('aria-hidden','true');
-  const p=document.createElementNS(ns,i===2?'circle':'path');
-  if(i===0) p.setAttribute('d','M12 3 22 21H2z');
-  if(i===1) p.setAttribute('d','M12 2 22 12 12 22 2 12z');
-  if(i===2){p.setAttribute('cx','12');p.setAttribute('cy','12');p.setAttribute('r','9.5');}
-  if(i===3) p.setAttribute('d','M4 4h16v16H4z');
+  const p=document.createElementNS(ns,'path');
+  if(i===0) p.setAttribute('d','M12 2.5l2.9 6.3 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.5 1.5-6.7-5.1-4.6 6.8-.7z');
+  if(i===1) p.setAttribute('d','M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z');
+  if(i===2) p.setAttribute('d','M12 2.5C9 7 5.5 10.2 5.5 14.2a6.5 6.5 0 0 0 13 0C18.5 10.2 15 7 12 2.5z');
+  if(i===3) p.setAttribute('d','M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z');
   p.setAttribute('fill','currentColor');
   s.append(p);
   return s;
@@ -1755,7 +1784,7 @@ function buildHome(){
       el('button',{class:'btn',type:'button',disabled:!ready,onclick:()=>{ inNick=last.name; inPin=last.pin; if(last.av) selAv=last.av; joinGame(); },text:'Volver a la partida'}),
       el('button',{class:'btn ghost',type:'button',onclick:()=>{ try{ localStorage.removeItem('di-last'); }catch(e){} lastKey=''; render(); },text:'Descartar'}))):null;
   return el('div',{class:'stack'},
-    head('Trivia, acertijos y más de 36.500 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v36.2)'),
+    head('Trivia, acertijos y más de 36.500 preguntas para jugar en grupo. Contestar rápido suma más puntos. (v36.3)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());
@@ -1856,14 +1885,16 @@ function qimg(q){
   const src=q.im.charAt(0)==='<'?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(q.im):q.im;
   return el('div',{class:'qimg'},el('img',{src:src,alt:'Imagen de la pregunta',draggable:'false'}));
 }
+function qfull(q){ return q.k!=='n'&&!q.im; }
+function qcls(q){ return 'q'+(q.q.length>200?' xl':q.q.length>110?' lg':''); }
 function buildHostQ(){
   const q=BANK[G.order[G.qn]];
-  return el('div',{class:'stack'},
+  return el('div',{class:'stack'+(qfull(q)?' qfull':'')},
     dblBanner(),
     qhead(q,G.qn+1,G.order.length,true),
     offlineNode(),
     el('div',{class:'bar'},el('i',{id:'barfill'})),
-    el('h2',{class:'q',text:q.q}),qimg(q),
+    el('h2',{class:qfull(q)?qcls(q):'q',text:q.q}),qimg(q),
     q.k==='n'?(G.me&&G.myChoice===null&&!expired?numForm(q,hostNum):el('section',{class:'panel center'},el('p',{class:'lead',role:'status',text:G.me?(G.myChoice!==null?'Tu respuesta quedó registrada: '+fmtN(G.myChoice,q):'Se acabó tu tiempo.'):'Los jugadores están escribiendo su estimación…'}))):
     el('div',{class:'opts'},(G.me?permFor(q,G.seq,G.me.name):[0,1,2,3]).map((j,k)=>optEl(q,j,G.me&&G.myChoice===null&&!expired?{pos:k,onclick:()=>hostAnswer(j)}:{pos:k,cls:G.myChoice===j?'sel':''}))),
     q.k!=='n'&&G.me?el('p',{class:'lead',role:'status',text:G.myChoice!==null?'Tu respuesta quedó registrada.':(expired?'Se acabó tu tiempo.':'Tocá tu respuesta: vos también jugás.')}):null,
@@ -1928,23 +1959,33 @@ function buildPLobby(){
     curioNode(0),
     el('div',{class:'actions'},el('button',{class:'btn ghost',type:'button',onclick:leaveAll,text:'Salir'})));
 }
+const SUSP=['¿Seguro o de pura suerte?','Los fantasmas están mirando…','Cruzá los dedos…','Nadie dijo que sería fácil…','El murciélago anotó tu duda…','Ya no hay vuelta atrás…','Las calabazas contienen el aliento…'];
+function sentCard(seq){
+  return el('section',{class:'panel center sent'},el('div',{class:'lock','aria-hidden':'true',text:'🔒'}),el('h2',{text:'¡Respuesta enviada!'}),el('p',{class:'lead',role:'status',text:'Esperando al resto del grupo…'}),el('p',{class:'susp',text:SUSP[((seq|0)%SUSP.length+SUSP.length)%SUSP.length]}));
+}
+function pfoot(){
+  const H=hostPresence(), b=H&&Array.isArray(H.b)?H.b:[], e=b.find(x=>x[0]===Pl.name);
+  return el('div',{class:'pfoot'},avBuild(Pl.av,true),el('span',{class:'pn',text:Pl.name}),el('span',{class:'pp',text:fmt(e?e[1]:0)+' pts'}));
+}
 function buildPQ(){
   const H=hostPresence();
   const q=H?BANK[H.qi]:null;
   if(!q) return waitCard('Preparando la pregunta…','');
   if(Pl.seq===Pl.skipSeq) return waitCard('Entraste en medio de una pregunta','Jugás desde la próxima.');
   if(Pl.choice!==null){
-    return el('div',{class:'stack'},
-      waitCard('Respuesta enviada','Esperando al resto del grupo…'),
-      q.k==='n'?el('section',{class:'panel center'},el('p',{class:'lead',text:'Tu respuesta: '+fmtN(Pl.choice,q)})):optEl(q,Pl.choice,{pos:permFor(q,H.seq,Pl.name).indexOf(Pl.choice)}));
+    return el('div',{class:'stack pw'},
+      sentCard(H.seq),
+      q.k==='n'?el('section',{class:'panel center'},el('p',{class:'lead',text:'Tu respuesta: '+fmtN(Pl.choice,q)})):optEl(q,Pl.choice,{pos:permFor(q,H.seq,Pl.name).indexOf(Pl.choice)}),
+      pfoot());
   }
   if(expired) return waitCard('Se acabó el tiempo','Esperá el resultado.');
-  return el('div',{class:'stack'},
+  return el('div',{class:'stack'+(qfull(q)?' qfull':'')},
     dblBanner(),
     qhead(q,H.qn+1,H.total,true),
     el('div',{class:'bar'},el('i',{id:'barfill'})),
-    el('h2',{class:'q small',text:q.q}),qimg(q),
-    q.k==='n'?numForm(q,answerNum):el('div',{class:'opts'},permFor(q,H.seq,Pl.name).map((j,k)=>optEl(q,j,{pos:k,onclick:()=>answer(j)}))));
+    el('h2',{class:qfull(q)?qcls(q):'q small',text:q.q}),qimg(q),
+    q.k==='n'?numForm(q,answerNum):el('div',{class:'opts'},permFor(q,H.seq,Pl.name).map((j,k)=>optEl(q,j,{pos:k,onclick:()=>answer(j)}))),
+    pfoot());
 }
 function buildPRev(){
   const H=hostPresence();
@@ -1960,15 +2001,18 @@ function buildPRev(){
     if(r[i]===1) gap='¡Vas primero!';
     else if(b[i-1][1]-e[1]>0) gap='A '+fmt(b[i-1][1]-e[1])+' pts de '+b[i-1][0];
     else gap='Empatás con '+b[i-1][0];
+    const ra=avBuild(Pl.av,false); ra.classList.add('rav');
     mine=el('section',{class:'result '+(res===1?'good':res===0&&!isN?'bad':'none')},
-      el('div',{class:'big',role:'status',text:isN?(res===1?'¡El más cercano!':res===0?'Quedaste a '+fmt(Math.abs(Math.round(((Pl.myNum||0)-q.num)*1000)/1000)):'No respondiste'):(res===1?'¡Correcto!':res===0?'Incorrecto':'No respondiste')}),
+      el('div',{class:'big',role:'status',text:isN?(res===1?'¡El más cercano!':res===0?'Quedaste a '+fmt(Math.abs(Math.round(((Pl.myNum||0)-q.num)*1000)/1000)):'No respondiste'):(res===1?'¡Correcto!':res===0?'Casi…':'No respondiste')}),
+      ra,
       (isN?res!==-1:res===1)?el('div',{class:'gain',text:(e[2]>0?'+'+fmt(e[2]):'+0')}):null,
-      e[4]>=2?el('div',{text:'Racha de '+e[4]+' '+(isN?'veces el más cercano':'aciertos')}):null,
+      e[4]>=2?el('div',{class:'streakb',text:'🔥 Racha de '+e[4]+' '+(isN?'veces el más cercano':'aciertos')}):(res===0&&!isN?el('div',{text:'Racha perdida'}):null),
       el('div',{text:'Vas '+r[i]+'.º de '+b.length+' · '+fmt(e[1])+' pts · '+gap}));
   }
   const pm=q&&!isN?permFor(q,H.seq,Pl.name):[];
   /* mismo orden de pantalla que ve el anfitrión: racha, pregunta, respuesta, dato, reporte, posiciones, y al final el resultado propio */
   return el('div',{class:'stack'},
+    mine,
     i>=0?streakBanner(b,Pl.name):null,
     q?qhead(q,H.qn+1,H.total,false):null,
     q?el('h2',{class:'q small',text:q.q}):null,
@@ -1980,8 +2024,8 @@ function buildPRev(){
     el('section',{class:'panel'},
       el('h3',{text:'Posiciones'}),
       boardList(b.slice(0,5),r.slice(0,5),Pl.name,true)),
-    mine,
-    el('p',{class:'lead',text:'Esperá la próxima pregunta.'}));
+    el('p',{class:'lead',text:'Esperá la próxima pregunta.'}),
+    pfoot());
 }
 function buildPEnd(){
   const H=hostPresence();

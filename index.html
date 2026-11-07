@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.15">
+<meta name="app-version" content="v36.16">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -992,6 +992,14 @@ function baseRoom(){
 }
 
 /* ---------- v36.15: diagnóstico de conexión (oculto: tocar 5 veces el logo, o abrir con ?diag=1) ---------- */
+
+/* ---------- v36.16: servidores ICE propios ----------
+   ICE_EXTRA: pegar acá las entradas {urls,username,credential} de un servicio TURN (p. ej. Metered).
+   Vacío = solo STUN (el TURN gratuito de PeerJS fue discontinuado). Las credenciales de un TURN quedan visibles en el
+   código de la página: usar SOLO las de TURN (nunca la contraseña ni la clave secreta de la cuenta). */
+const ICE_EXTRA=[{urls:'stun:stun.relay.metered.ca:80'},{urls:'turn:standard.relay.metered.ca:80',username:'3ab483fd230ad93061135741',credential:'ZZ0P8PyvlNnhqjzo'},{urls:'turn:standard.relay.metered.ca:80?transport=tcp',username:'3ab483fd230ad93061135741',credential:'ZZ0P8PyvlNnhqjzo'},{urls:'turn:standard.relay.metered.ca:443',username:'3ab483fd230ad93061135741',credential:'ZZ0P8PyvlNnhqjzo'},{urls:'turns:standard.relay.metered.ca:443?transport=tcp',username:'3ab483fd230ad93061135741',credential:'ZZ0P8PyvlNnhqjzo'}];
+const ICE_LIST=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}].concat(ICE_EXTRA);
+const PEER_OPTS={config:{iceServers:ICE_LIST,sdpSemantics:'unified-plan'}};
 const NETD=(function(){
   const T0=Date.now(), ev=[], pcs=[], errs=[]; let test='(sin ejecutar)';
   const RPC=window.RTCPeerConnection||window.webkitRTCPeerConnection;
@@ -1022,13 +1030,13 @@ const NETD=(function(){
     return new Promise(res=>{
       if(!RPC){ test='Este navegador no soporta WebRTC.'; res(test); return; }
       const c={host:0,srflx:0,relay:0}, maps=new Set(), er=[]; let pc, done=false;
-      try{ pc=new RPC({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}]}); }
+      try{ pc=new RPC({iceServers:ICE_LIST.length>2?ICE_LIST:ICE_LIST.concat([{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}])}); }
       catch(e){ test='No se pudo iniciar la prueba: '+e; res(test); return; }
       const fin=()=>{ if(done) return; done=true; try{ pc.close(); }catch(e){}
         const secs=Math.round((Date.now()-t0)/100)/10;
         const nat=maps.size>1?'INDICIO de NAT simétrico (el router usa un puerto distinto según el destino): la conexión directa entre celulares suele fallar y hace falta un TURN que funcione.'
           :(c.srflx?'NAT con mapeo estable (la conexión directa suele ser posible).':'No se obtuvo dirección pública: STUN bloqueado o sin internet.');
-        const turn=c.relay>0?'TURN de PeerJS RESPONDE (candidatos relay: '+c.relay+').':'TURN de PeerJS NO respondió (0 candidatos relay).'+(er.length?' Errores: '+er.slice(0,4).join(' | '):'');
+        const tn=ICE_EXTRA.length?'TURN propio':'TURN de PeerJS (discontinuado)'; const turn=c.relay>0?tn+' RESPONDE (candidatos relay: '+c.relay+').':tn+' NO respondió (0 candidatos relay).'+(er.length?' Errores: '+er.slice(0,4).join(' | '):'');
         test='Prueba ('+secs+' s): host '+c.host+', STUN/srflx '+c.srflx+' (direcciones públicas distintas: '+maps.size+'), relay '+c.relay+'. '+nat+' '+turn;
         res(test); };
       const t0=Date.now();
@@ -1039,6 +1047,23 @@ const NETD=(function(){
       setTimeout(fin,10000);
     });
   }
+
+  function relayTest(){
+    return new Promise(res=>{
+      if(!RPC||!ICE_EXTRA.length){ res('Prueba de relay completo: omitida (no hay TURN propio configurado).'); return; }
+      let a,b,done=false; const t0=Date.now();
+      const fin=m=>{ if(done) return; done=true; try{ a.close(); b.close(); }catch(e){} res('Prueba de relay completo ('+(Math.round((Date.now()-t0)/100)/10)+' s): '+m); };
+      try{
+        const cfg={iceServers:ICE_EXTRA,iceTransportPolicy:'relay'}; a=new RPC(cfg); b=new RPC(cfg);
+        a.onicecandidate=e=>{ if(e.candidate) b.addIceCandidate(e.candidate).catch(()=>{}); };
+        b.onicecandidate=e=>{ if(e.candidate) a.addIceCandidate(e.candidate).catch(()=>{}); };
+        const dc=a.createDataChannel('r'); dc.onopen=()=>dc.send('ping');
+        b.ondatachannel=e=>{ e.channel.onmessage=m=>{ if(m.data==='ping') fin('OK: los datos viajaron por el TURN (solo relay).'); }; };
+        a.createOffer().then(o=>a.setLocalDescription(o)).then(()=>b.setRemoteDescription(a.localDescription)).then(()=>b.createAnswer()).then(o=>b.setLocalDescription(o)).then(()=>a.setRemoteDescription(b.localDescription)).catch(x=>fin('error: '+x));
+      }catch(x){ fin('error: '+x); return; }
+      setTimeout(()=>fin('FALLÓ: no pasaron datos por el TURN en 12 s (credenciales inválidas, cuota agotada o servidor bloqueado).'),12000);
+    });
+  }
   function report(){
     const L=[]; const meta=document.querySelector('meta[name="app-version"]');
     L.push('Ingenia '+(meta?meta.content:'?')+' · '+new Date().toISOString());
@@ -1046,7 +1071,7 @@ const NETD=(function(){
     L.push('onLine: '+navigator.onLine+(navigator.connection?(' · red: '+(navigator.connection.type||'?')+' '+(navigator.connection.effectiveType||'')):''));
     let rl='?'; try{ rl=(typeof role!=='undefined'&&role)||'sin rol'; }catch(e){}
     L.push('Rol: '+rl+' · sala conectada: '+(typeof room!=='undefined'&&room?room.connected:false));
-    L.push('ICE por defecto de PeerJS 1.5.5: stun.l.google.com:19302 + turn eu-0/us-0.turn.peerjs.com:3478 (UDP)');
+    L.push('ICE configurado: '+ICE_LIST.map(s=>[].concat(s.urls).join(',')).join(' + ')+(ICE_EXTRA.length?'':' (sin TURN propio)'));
     L.push('— Conexiones WebRTC de esta sesión —');
     if(!pcs.length) L.push('(ninguna todavía)');
     pcs.forEach(o=>L.push('pc'+o.id+': candidatos host '+o.host+', srflx '+o.srflx+', relay '+o.relay+' · recolección '+o.gather+' · ice '+o.ice+' · conexión '+o.conn+' · par: '+o.pair));
@@ -1061,7 +1086,7 @@ const NETD=(function(){
     const pre=document.createElement('pre'); const bar=document.createElement('div'); bar.className='dgb';
     const mk=(t,f)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=t; b.addEventListener('click',f); bar.appendChild(b); return b; };
     const upd=()=>{ pre.textContent=report(); };
-    mk('Probar conexión (10 s)',function(){ const b=this; b.disabled=true; b.textContent='Probando…'; run().then(()=>{ b.disabled=false; b.textContent='Probar conexión (10 s)'; upd(); }); });
+    mk('Probar conexión (10 s)',function(){ const b=this; b.disabled=true; b.textContent='Probando…'; run().then(()=>relayTest()).then(m=>{ test+='\n'+m; b.disabled=false; b.textContent='Probar conexión (10 s)'; upd(); }); });
     mk('Actualizar',upd);
     const cp=mk('Copiar informe',()=>{ const t=report(); const ok=()=>{ cp.textContent='¡Copiado!'; setTimeout(()=>{ cp.textContent='Copiar informe'; },1500); };
       const fb=()=>{ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); ok(); }catch(e){ cp.textContent='Copiá a mano'; } };
@@ -1078,7 +1103,7 @@ function hostRoom(code){
   return new Promise((resolve,reject)=>{
     const id=PREFIX+code, r=baseRoom(), me={}, pl=new Map();
     let timer=0, closed=false, opened0=false;
-    const peer=new Peer(id);
+    const peer=new Peer(id,PEER_OPTS);
     const plist=()=>{ const a=[{peer:id,presence:me}]; pl.forEach((v,k)=>a.push({peer:k,presence:v.presence})); return a; };
     const snapshot=()=>({t:'peers',list:plist()});
     const send=(c,m)=>{ try{ if(c.open) c.send(m); }catch(e){} };
@@ -1173,7 +1198,7 @@ function joinRoom(code){
       c.on('error',e=>{ if(!opened) lg('error canal '+((e&&e.type)||e)); });
     };
     const mk=()=>{
-      const p=new Peer(); peer=p;
+      const p=new Peer(undefined,PEER_OPTS); peer=p;
       p.on('open',()=>{ if(p===peer){ lg('servidor ok'); connect(); } });
       p.on('disconnected',()=>{ if(p===peer&&!opened) lg('servidor desconectado'); });
       p.on('close',()=>{ if(p===peer&&opened) lost(); });
@@ -2183,7 +2208,7 @@ function buildHome(){
   const hero=el('div',{class:'hero',role:'img','aria-label':'Ingenia'}); hero.innerHTML='<svg viewBox="60 60 392 392" aria-hidden="true" focusable="false"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs><circle cx="256" cy="256" r="170" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="38"/><circle cx="256" cy="256" r="170" fill="none" stroke="url(#lgB)" stroke-width="38" stroke-linecap="round" stroke-dasharray="800 1068" transform="rotate(-90 256 256)"/><circle cx="256" cy="186" r="24" fill="#fbbf24"/><rect x="228" y="228" width="56" height="130" rx="28" fill="#fff"/></svg><span class="hw">Ingenia</span>';
   return el('div',{class:'stack'},
     hero,
-    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.15)'),
+    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.16)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());

@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.14">
+<meta name="app-version" content="v36.15">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -363,6 +363,7 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .tag.pb{background:#ff7a18;color:#2a1200}
 
 .curio h3{margin:0 0 6px}.curio .lead{margin:0}
+#dgp{position:fixed;inset:0;z-index:99999;background:rgba(12,7,44,.98);color:#fff;overflow:auto;padding:14px 14px 40px}#dgp pre{white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;margin:12px 0 0}#dgp .dgb{display:flex;flex-wrap:wrap;gap:8px;position:sticky;top:0;background:rgba(12,7,44,.98);padding:4px 0}#dgp button{font:700 14px system-ui,sans-serif;padding:10px 14px;border-radius:12px;border:0;background:#ffc21f;color:#2a1670;cursor:pointer}#dgp button:disabled{opacity:.6}
 </style>
 </head>
 <body>
@@ -989,6 +990,90 @@ function baseRoom(){
   r.onConnection=fn=>{ cons.add(fn); queueMicrotask(()=>{ if(cons.has(fn)) fn(r.connected); }); return ()=>{ cons.delete(fn); }; };
   return r;
 }
+
+/* ---------- v36.15: diagnóstico de conexión (oculto: tocar 5 veces el logo, o abrir con ?diag=1) ---------- */
+const NETD=(function(){
+  const T0=Date.now(), ev=[], pcs=[], errs=[]; let test='(sin ejecutar)';
+  const RPC=window.RTCPeerConnection||window.webkitRTCPeerConnection;
+  const add=m=>{ if(ev.length<120) ev.push((Math.round((Date.now()-T0)/100)/10)+'s '+m); };
+  const ctype=c=>{ const m=/ typ (host|srflx|prflx|relay)/.exec(c||''); return m?m[1]:'?'; };
+  function pair(pc,o){
+    try{ pc.getStats().then(rep=>{
+      const m={}; let p=null; rep.forEach(r=>{ m[r.id]=r; });
+      rep.forEach(r=>{ if(r.type==='transport'&&r.selectedCandidatePairId) p=m[r.selectedCandidatePairId]; });
+      if(!p) rep.forEach(r=>{ if(r.type==='candidate-pair'&&(r.selected||(r.nominated&&r.state==='succeeded'))) p=r; });
+      if(p){ const l=m[p.localCandidateId]||{}, r=m[p.remoteCandidateId]||{};
+        o.pair=(l.candidateType||'?')+'/'+(l.protocol||'?')+' <-> '+(r.candidateType||'?')+'/'+(r.protocol||'?'); add('pc'+o.id+' par elegido: '+o.pair); }
+    }).catch(()=>{}); }catch(e){}
+  }
+  function hook(pc){
+    const o={id:(pcs.length?pcs[pcs.length-1].id:0)+1,host:0,srflx:0,relay:0,prflx:0,ice:'-',conn:'-',gather:'-',pair:'-'};
+    pcs.push(o); if(pcs.length>8) pcs.shift(); add('pc'+o.id+' creada');
+    pc.addEventListener('icecandidate',e=>{ if(e.candidate){ const t=ctype(e.candidate.candidate); o[t]=(o[t]||0)+1; } });
+    pc.addEventListener('icecandidateerror',e=>{ const s='pc'+o.id+' error ICE '+(e.errorCode||'?')+' '+(e.url||'')+' '+(e.errorText||''); if(errs.length<20) errs.push(s); add(s); });
+    pc.addEventListener('icegatheringstatechange',()=>{ o.gather=pc.iceGatheringState; add('pc'+o.id+' recolección='+o.gather); });
+    pc.addEventListener('iceconnectionstatechange',()=>{ o.ice=pc.iceConnectionState; add('pc'+o.id+' ice='+o.ice); if(/connected|completed/.test(o.ice)) pair(pc,o); });
+    pc.addEventListener('connectionstatechange',()=>{ o.conn=pc.connectionState; add('pc'+o.id+' conexión='+o.conn); });
+  }
+  if(RPC){
+    try{ class W extends RPC{ constructor(a,b){ super(a,b); try{ hook(this); }catch(e){} } } window.RTCPeerConnection=W; }catch(e){}
+  }
+  function run(){
+    return new Promise(res=>{
+      if(!RPC){ test='Este navegador no soporta WebRTC.'; res(test); return; }
+      const c={host:0,srflx:0,relay:0}, maps=new Set(), er=[]; let pc, done=false;
+      try{ pc=new RPC({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}]}); }
+      catch(e){ test='No se pudo iniciar la prueba: '+e; res(test); return; }
+      const fin=()=>{ if(done) return; done=true; try{ pc.close(); }catch(e){}
+        const secs=Math.round((Date.now()-t0)/100)/10;
+        const nat=maps.size>1?'INDICIO de NAT simétrico (el router usa un puerto distinto según el destino): la conexión directa entre celulares suele fallar y hace falta un TURN que funcione.'
+          :(c.srflx?'NAT con mapeo estable (la conexión directa suele ser posible).':'No se obtuvo dirección pública: STUN bloqueado o sin internet.');
+        const turn=c.relay>0?'TURN de PeerJS RESPONDE (candidatos relay: '+c.relay+').':'TURN de PeerJS NO respondió (0 candidatos relay).'+(er.length?' Errores: '+er.slice(0,4).join(' | '):'');
+        test='Prueba ('+secs+' s): host '+c.host+', STUN/srflx '+c.srflx+' (direcciones públicas distintas: '+maps.size+'), relay '+c.relay+'. '+nat+' '+turn;
+        res(test); };
+      const t0=Date.now();
+      pc.onicecandidate=e=>{ if(!e.candidate){ fin(); return; } const s=e.candidate.candidate, t=ctype(s); if(c[t]!=null) c[t]++;
+        if(t==='srflx'){ const m=/ (\S+) (\d+) typ srflx/.exec(s); if(m&&m[1].indexOf('.')>0) maps.add(m[1]+':'+m[2]); } };
+      pc.onicecandidateerror=e=>{ er.push((e.errorCode||'?')+' '+(e.url||'')); };
+      try{ pc.createDataChannel('t'); pc.createOffer().then(o=>pc.setLocalDescription(o)).catch(x=>{ test='Error en la prueba: '+x; fin(); }); }catch(x){ test='Error en la prueba: '+x; fin(); }
+      setTimeout(fin,10000);
+    });
+  }
+  function report(){
+    const L=[]; const meta=document.querySelector('meta[name="app-version"]');
+    L.push('Ingenia '+(meta?meta.content:'?')+' · '+new Date().toISOString());
+    L.push('Navegador: '+navigator.userAgent);
+    L.push('onLine: '+navigator.onLine+(navigator.connection?(' · red: '+(navigator.connection.type||'?')+' '+(navigator.connection.effectiveType||'')):''));
+    let rl='?'; try{ rl=(typeof role!=='undefined'&&role)||'sin rol'; }catch(e){}
+    L.push('Rol: '+rl+' · sala conectada: '+(typeof room!=='undefined'&&room?room.connected:false));
+    L.push('ICE por defecto de PeerJS 1.5.5: stun.l.google.com:19302 + turn eu-0/us-0.turn.peerjs.com:3478 (UDP)');
+    L.push('— Conexiones WebRTC de esta sesión —');
+    if(!pcs.length) L.push('(ninguna todavía)');
+    pcs.forEach(o=>L.push('pc'+o.id+': candidatos host '+o.host+', srflx '+o.srflx+', relay '+o.relay+' · recolección '+o.gather+' · ice '+o.ice+' · conexión '+o.conn+' · par: '+o.pair));
+    L.push('— Errores ICE —'); if(!errs.length) L.push('(ninguno)'); errs.forEach(s=>L.push(s));
+    L.push('— Prueba de red —'); L.push(test);
+    L.push('— Eventos —'); ev.forEach(s=>L.push(s));
+    return L.join('\n');
+  }
+  function open(){
+    let p=document.getElementById('dgp'); if(p) p.remove();
+    p=document.createElement('div'); p.id='dgp';
+    const pre=document.createElement('pre'); const bar=document.createElement('div'); bar.className='dgb';
+    const mk=(t,f)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=t; b.addEventListener('click',f); bar.appendChild(b); return b; };
+    const upd=()=>{ pre.textContent=report(); };
+    mk('Probar conexión (10 s)',function(){ const b=this; b.disabled=true; b.textContent='Probando…'; run().then(()=>{ b.disabled=false; b.textContent='Probar conexión (10 s)'; upd(); }); });
+    mk('Actualizar',upd);
+    const cp=mk('Copiar informe',()=>{ const t=report(); const ok=()=>{ cp.textContent='¡Copiado!'; setTimeout(()=>{ cp.textContent='Copiar informe'; },1500); };
+      const fb=()=>{ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); ok(); }catch(e){ cp.textContent='Copiá a mano'; } };
+      try{ navigator.clipboard.writeText(t).then(ok,fb); }catch(e){ fb(); } });
+    mk('Cerrar',()=>p.remove());
+    p.appendChild(bar); p.appendChild(pre); document.body.appendChild(p); upd();
+  }
+  let taps=[];
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('.brand,.hero'); if(!b) return; const n=Date.now(); taps=taps.filter(t=>n-t<4000); taps.push(n); if(taps.length>=5){ taps=[]; open(); } });
+  if(/[?&]diag(=|&|$)/.test(location.search)) window.addEventListener('load',()=>setTimeout(open,300));
+  return {add,open,run,report};
+})();
 function hostRoom(code){
   return new Promise((resolve,reject)=>{
     const id=PREFIX+code, r=baseRoom(), me={}, pl=new Map();
@@ -1005,8 +1090,8 @@ function hostRoom(code){
     r.peers=()=>plist().map(x=>({peer:x.peer,kind:'viewer',isMe:x.peer===id,presence:x.presence}));
     r.presence=patch=>{ merge(me,patch); broadcast(); r.emitPeers(); return Promise.resolve(); };
     r.leave=()=>{ closed=true; clearTimeout(timer); try{ peer.destroy(); }catch(e){} return Promise.resolve(); };
-    peer.on('open',()=>{ opened0=true; r.setConn(true); resolve(r); });
-    peer.on('error',e=>{ if(!r.connected){ try{ peer.destroy(); }catch(x){} reject(e); } });
+    peer.on('open',()=>{ NETD.add('anfitrión: servidor ok'); opened0=true; r.setConn(true); resolve(r); });
+    peer.on('error',e=>{ NETD.add('anfitrión: error '+(e&&e.type)); if(!r.connected){ try{ peer.destroy(); }catch(x){} reject(e); } });
     peer.on('disconnected',()=>{ if(!closed){ r.setConn(false); try{ peer.reconnect(); }catch(e){} } });
     peer.on('open',()=>{ if(opened0&&!closed) r.setConn(true); });
     r.nudge=()=>{ if(!closed&&peer.disconnected){ try{ peer.reconnect(); }catch(e){} } };
@@ -1038,7 +1123,7 @@ function joinRoom(code){
   return new Promise((resolve,reject)=>{
     const hostId=PREFIX+code, r=baseRoom(), mine={};
     let remote=[], conn=null, opened=false, closed=false, peer=null, rt=0, tries=0, att=0;
-    const T0=Date.now(), dg=[]; const lg=m=>{ if(dg.length<16) dg.push(Math.round((Date.now()-T0)/1000)+'s '+m); };
+    const T0=Date.now(), dg=[]; const lg=m=>{ NETD.add('unirse: '+m); if(dg.length<16) dg.push(Math.round((Date.now()-T0)/1000)+'s '+m); };
     const timer=setTimeout(()=>{ if(!opened){ closed=true; try{ peer.destroy(); }catch(e){} lg('tiempo total agotado'); reject({type:'timeout',dg:dg.slice()}); } },30000);
     r.rec=false;
     r.peers=()=>remote.map(x=>({peer:x.peer,kind:'viewer',isMe:!!peer&&x.peer===peer.id,presence:x.presence||{}}));
@@ -1724,7 +1809,7 @@ async function joinGame(){ curNext();
   render();
   let r; connSlow=false; const slowT=setTimeout(()=>{ if(role==='player'&&!room){ connSlow=true; const sl=document.querySelector('p.lead[role=status]'); if(sl) sl.textContent='Sigue intentando… Si tarda, probá apagar el WiFi y usar datos móviles.'; } },10000);
   try{ r=await lobby.join(p); clearTimeout(slowT); connSlow=false; }
-  catch(e){ clearTimeout(slowT); connSlow=false; fail(e&&e.type==='peer-unavailable'?'No encontramos una partida con ese PIN.':'No se pudo conectar. Probá apagar el WiFi y usar datos móviles (o pedile lo mismo a quien creó la partida). Si sigue igual, revisá tu internet. [Diagnóstico: '+((e&&e.dg)||[]).join(' · ')+' · motivo: '+((e&&e.type)||'?')+']'); return; }
+  catch(e){ clearTimeout(slowT); connSlow=false; fail(e&&e.type==='peer-unavailable'?'No encontramos una partida con ese PIN.':'No se pudo conectar. Probá apagar el WiFi y usar datos móviles (o pedile lo mismo a quien creó la partida). Si sigue igual, revisá tu internet. [Diagnóstico: '+((e&&e.dg)||[]).join(' · ')+' · motivo: '+((e&&e.type)||'?')+'] Para ver el informe de conexión, tocá 5 veces el logo de Ingenia.'); return; }
   if(role!=='player'||!Pl){ r.leave().catch(()=>{}); return; }
   room=r; saveLast();
   r.onKick=()=>fail('Otra persona entró con tu mismo apodo.');
@@ -2098,7 +2183,7 @@ function buildHome(){
   const hero=el('div',{class:'hero',role:'img','aria-label':'Ingenia'}); hero.innerHTML='<svg viewBox="60 60 392 392" aria-hidden="true" focusable="false"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs><circle cx="256" cy="256" r="170" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="38"/><circle cx="256" cy="256" r="170" fill="none" stroke="url(#lgB)" stroke-width="38" stroke-linecap="round" stroke-dasharray="800 1068" transform="rotate(-90 256 256)"/><circle cx="256" cy="186" r="24" fill="#fbbf24"/><rect x="228" y="228" width="56" height="130" rx="28" fill="#fff"/></svg><span class="hw">Ingenia</span>';
   return el('div',{class:'stack'},
     hero,
-    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.14)'),
+    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.15)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());

@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.22">
+<meta name="app-version" content="v36.24">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -2292,7 +2292,7 @@ function buildHome(){
   const hero=el('div',{class:'hero',role:'img','aria-label':'Ingenia'}); hero.innerHTML='<svg viewBox="60 60 392 392" aria-hidden="true" focusable="false"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs><circle cx="256" cy="256" r="170" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="38"/><circle cx="256" cy="256" r="170" fill="none" stroke="url(#lgB)" stroke-width="38" stroke-linecap="round" stroke-dasharray="800 1068" transform="rotate(-90 256 256)"/><circle cx="256" cy="186" r="24" fill="#fbbf24"/><rect x="228" y="228" width="56" height="130" rx="28" fill="#fff"/></svg><span class="hw">Ingenia</span>';
   return el('div',{class:'stack'},
     hero,
-    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.22)'),
+    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.24)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());
@@ -2709,35 +2709,32 @@ const VOZ=(function(){
   try{ const q=/[?&]voz=([01])/.exec(location.search); if(q) localStorage.setItem('di-voz',q[1]); on=localStorage.getItem('di-voz')==='1'; deaf=localStorage.getItem('di-vozmute')==='1'; }catch(e){}
   let curRoom=null, stream=null, talking=false, busy=false, tm=0, toastT=0, needTap=false;
   const calls=new Map(), inc=new Map();
-  let box=null, bTalk=null, bEar=null, lab=null;
+  let box=null, bTalk=null, lab=null;
   const css=document.createElement('style');
-  css.textContent='#vozb{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font:700 13px system-ui,sans-serif;pointer-events:none}'
-   +'#vozb>*{pointer-events:auto}#vozb .vl{max-width:70vw;background:rgba(20,12,70,.92);color:#fff;border-radius:12px;padding:6px 10px;box-shadow:0 2px 10px rgba(0,0,0,.4)}'
-   +'#vozb .vr{display:flex;gap:8px}#vozb button{border:0;border-radius:50%;width:52px;height:52px;font-size:24px;line-height:1;cursor:pointer;background:linear-gradient(180deg,#7a69ee,#4f3fc4);color:#fff;box-shadow:0 4px 0 #2b1f80,0 6px 10px rgba(0,0,0,.35);padding:0}'
-   +'#vozb button.on{background:linear-gradient(180deg,#ff6b6b,#d62f2f);box-shadow:0 4px 0 #8e1a1a,0 6px 10px rgba(0,0,0,.35);animation:vozp 1.2s infinite}'
-   +'#vozb button.off{opacity:.6}@keyframes vozp{50%{transform:scale(1.07)}}.vozs{display:flex;align-items:center;gap:8px;margin:4px 0}.vozs input{width:22px;height:22px}';
+  css.textContent='#vozb{position:fixed;left:8px;right:8px;bottom:max(10px,env(safe-area-inset-bottom));z-index:80;display:flex;justify-content:center;pointer-events:none;font:700 14px system-ui,sans-serif}'
+   +'#vozb .vl{pointer-events:auto;max-width:90vw;background:rgba(20,12,70,.94);color:#fff;border-radius:12px;padding:8px 12px;box-shadow:0 2px 10px rgba(0,0,0,.4)}'
+   +'.sndb.vozm.talk{background:linear-gradient(180deg,#ff6b6b,#d62f2f);color:#fff;box-shadow:0 4px 0 #8e1a1a,0 6px 10px rgba(0,0,0,.35);animation:vozp 1.2s infinite}'
+   +'@keyframes vozp{50%{transform:scale(1.06)}}.vozs{display:flex;align-items:center;gap:8px;margin:4px 0}.vozs input{width:22px;height:22px}';
   document.head.appendChild(css);
   const myName=()=>{ try{ return (typeof Pl!=='undefined'&&Pl&&Pl.name)||'Anfitrión'; }catch(e){ return 'Anfitrión'; } };
   const nameOf=id=>{ try{ const p=(room.peers()||[]).find(x=>x.peer===id); return (p&&p.presence&&p.presence.name)||''; }catch(e){ return ''; } };
   function toast(t,ms){ clearTimeout(toastT); if(lab){ lab.dataset.t=t||''; } ui(); if(t&&ms) toastT=setTimeout(()=>{ if(lab) lab.dataset.t=''; ui(); },ms); }
+  const MIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 14z"/><path d="M6 10.5a1 1 0 0 0-2 0 8 8 0 0 0 7 7.94V21H8.5a1 1 0 0 0 0 2h7a1 1 0 0 0 0-2H13v-2.56a8 8 0 0 0 7-7.94 1 1 0 0 0-2 0 6 6 0 0 1-12 0z"/></svg>';
   function ui(){
     const show=!!(room&&role);
     if(!box){
       box=document.createElement('div'); box.id='vozb';
-      lab=document.createElement('div'); lab.className='vl'; lab.dataset.t='';
-      const row=document.createElement('div'); row.className='vr';
-      bEar=document.createElement('button'); bEar.type='button'; bEar.onclick=()=>{ setDeaf(!deaf); };
-      bTalk=document.createElement('button'); bTalk.type='button'; bTalk.onclick=()=>{ talking?stop():start(); };
-      row.appendChild(bEar); row.appendChild(bTalk); box.appendChild(lab); box.appendChild(row); document.body.appendChild(box);
+      lab=document.createElement('div'); lab.className='vl'; lab.dataset.t=''; box.appendChild(lab); document.body.appendChild(box);
       lab.onclick=()=>hear();
+      bTalk=document.createElement('button'); bTalk.type='button'; bTalk.className='sndb vozm'; bTalk.innerHTML=MIC; bTalk.onclick=()=>{ talking?stop():start(); };
+      (document.querySelector('header.top')||document.body).appendChild(bTalk);
     }
     const speakers=[]; inc.forEach(v=>speakers.push(v.n));
     let t=lab.dataset.t||'';
     if(!t){ if(needTap&&speakers.length) t='🔊 Tocá acá para escuchar'; else if(speakers.length) t='🔊 '+speakers.join(', ')+(speakers.length>1?' hablan':' habla'); else if(talking) t='🎙 Estás hablando'; }
     lab.textContent=t; lab.style.display=t?'':'none';
-    bTalk.style.display=on?'':'none'; bTalk.textContent=talking?'🎙':'🎤'; bTalk.className=talking?'on':''; bTalk.setAttribute('aria-label',talking?'Silenciar mi micrófono':'Hablar'); bTalk.disabled=busy;
-    bEar.style.display=(on||speakers.length||deaf)?'':'none'; bEar.textContent=deaf?'🔇':'🔊'; bEar.className=deaf?'off':''; bEar.setAttribute('aria-label',deaf?'Escuchar a los demás':'Silenciar a los demás');
-    box.style.display=show&&(on||speakers.length||deaf)?'':'none';
+    bTalk.style.display=on&&show?'':'none'; bTalk.classList.toggle('talk',talking); bTalk.setAttribute('aria-label',talking?'Silenciar mi micrófono':'Hablar'); bTalk.title=talking?'Silenciar mi micrófono':'Hablar'; bTalk.disabled=busy;
+    box.style.display=show&&t?'':'none';
   }
   function setDeaf(v){ deaf=v; try{ localStorage.setItem('di-vozmute',v?'1':'0'); }catch(e){} inc.forEach(x=>{ x.a.muted=deaf; }); ui(); }
   function hear(){ let ok=true; inc.forEach(x=>{ try{ const p=x.a.play(); if(p&&p.catch) p.catch(()=>{ ok=false; }); }catch(e){} }); needTap=!ok; setTimeout(ui,300); }
@@ -2773,12 +2770,19 @@ const VOZ=(function(){
     busy=true; ui();
     try{
       if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw {name:'NoApi'};
-      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
       try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}
+      try{ stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}); }
+      catch(e1){
+        const n1=e1&&e1.name;
+        if(n1==='NotAllowedError'||n1==='SecurityError'||n1==='NotFoundError') throw e1;
+        await new Promise(r=>setTimeout(r,400));
+        stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      }
       talking=true; dial(); clearInterval(tm); tm=setInterval(dial,1500);
     }catch(e){
       const n=e&&e.name;
-      toast(n==='NotAllowedError'||n==='SecurityError'?'Sin permiso de micrófono. Habilitalo en el navegador.':n==='NotFoundError'||n==='OverconstrainedError'?'No se encontró un micrófono.':n==='NoApi'?'Este navegador no permite usar el micrófono.':'No se pudo abrir el micrófono.',5000);
+      try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(x){}
+      toast(n==='NotAllowedError'||n==='SecurityError'?'Sin permiso de micrófono. Habilitalo en el navegador.':n==='NotFoundError'||n==='OverconstrainedError'?'No se encontró un micrófono.':n==='NoApi'?'Este navegador no permite usar el micrófono.':'No se pudo abrir el micrófono ('+(n||'error')+(e&&e.message?': '+String(e.message).slice(0,80):'')+').',9000);
     }
     busy=false; ui();
   }
@@ -2799,7 +2803,7 @@ const VOZ=(function(){
     const mk=(tag,txt)=>{ const e=document.createElement(tag); e.textContent=txt; return e; };
     const row=(txt,get,set)=>{ const l=document.createElement('label'); l.className='vozs'; const i=document.createElement('input'); i.type='checkbox'; i.checked=get(); i.onchange=()=>set(i.checked); l.appendChild(i); l.appendChild(mk('span',txt)); return l; };
     return [mk('h3','Voz (experimental)'),
-      mk('p','Para charlar durante la partida: tocás 🎤 para hablar y de nuevo para silenciar. Escuchar no requiere nada. Si hay varios en la misma habitación, que hable uno por vez para evitar eco.'),
+      mk('p','Para charlar durante la partida: tocá el micrófono amarillo de arriba para hablar y de nuevo para silenciar. Escuchar no requiere nada. Si hay varios en la misma habitación, que hable uno por vez para evitar eco.'),
       row('Mostrar el botón para hablar en este dispositivo',()=>on,v=>{ on=v; try{ localStorage.setItem('di-voz',v?'1':'0'); }catch(e){} if(!v) stop(); ui(); }),
       row('Silenciar las voces de los demás',()=>deaf,v=>setDeaf(v))];
   }

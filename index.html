@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.21">
+<meta name="app-version" content="v36.22">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -1183,6 +1183,7 @@ function hostRoom(code){
     const id=PREFIX+code, r=baseRoom(), me={}, pl=new Map();
     let timer=0, closed=false, opened0=false;
     const peer=new Peer(id,PEER_OPTS);
+    r.peerObj=()=>peer; peer.on('call',c=>{ if(r.onCall) r.onCall(c); });
     const plist=()=>{ const a=[{peer:id,presence:me}]; pl.forEach((v,k)=>a.push({peer:k,presence:v.presence})); return a; };
     const snapshot=()=>({t:'peers',list:plist()});
     const send=(c,m)=>{ try{ if(c.open) c.send(m); }catch(e){} };
@@ -1230,6 +1231,7 @@ function joinRoom(code){
     const T0=Date.now(), dg=[]; const lg=m=>{ NETD.add('unirse: '+m); if(dg.length<16) dg.push(Math.round((Date.now()-T0)/1000)+'s '+m); };
     const timer=setTimeout(()=>{ if(!opened){ closed=true; try{ peer.destroy(); }catch(e){} lg('tiempo total agotado'); reject({type:'timeout',dg:dg.slice()}); } },30000);
     r.rec=false;
+    r.peerObj=()=>peer;
     r.peers=()=>remote.map(x=>({peer:x.peer,kind:'viewer',isMe:!!peer&&x.peer===peer.id,presence:x.presence||{}}));
     r.presence=patch=>{
       merge(mine,patch);
@@ -1278,6 +1280,7 @@ function joinRoom(code){
     };
     const mk=()=>{
       const p=new Peer(undefined,PEER_OPTS); peer=p;
+      p.on('call',c=>{ if(p===peer&&r.onCall) r.onCall(c); });
       p.on('open',()=>{ if(p===peer){ lg('servidor ok'); connect(); } });
       p.on('disconnected',()=>{ if(p===peer&&!opened) lg('servidor desconectado'); });
       p.on('close',()=>{ if(p===peer&&opened) lost(); });
@@ -2289,7 +2292,7 @@ function buildHome(){
   const hero=el('div',{class:'hero',role:'img','aria-label':'Ingenia'}); hero.innerHTML='<svg viewBox="60 60 392 392" aria-hidden="true" focusable="false"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs><circle cx="256" cy="256" r="170" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="38"/><circle cx="256" cy="256" r="170" fill="none" stroke="url(#lgB)" stroke-width="38" stroke-linecap="round" stroke-dasharray="800 1068" transform="rotate(-90 256 256)"/><circle cx="256" cy="186" r="24" fill="#fbbf24"/><rect x="228" y="228" width="56" height="130" rx="28" fill="#fff"/></svg><span class="hw">Ingenia</span>';
   return el('div',{class:'stack'},
     hero,
-    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.21)'),
+    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.22)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());
@@ -2682,7 +2685,7 @@ const HELP=(function(){
       el('h3',{text:'Si algo falla'}),
       el('p',{text:'Si se corta tu conexión, la app intenta volver sola. Si no, entrá de nuevo con el mismo apodo: conservás tus puntos. El anfitrión debe dejar su pantalla abierta y encendida.'}),
       el('h3',{text:'Sonido'}),
-      slider('Música','m'),slider('Efectos','s'));
+      slider('Música','m'),slider('Efectos','s'),...VOZ.section());
     ov=el('div',{class:'hov',onclick:e=>{ if(e.target===ov) close(); }},card);
     document.body.appendChild(ov);
     document.addEventListener('keydown',onKey,true);
@@ -2695,6 +2698,112 @@ const HELP=(function(){
       (document.querySelector('header.top')||document.body).appendChild(btn);
     }
   };
+})();
+
+/* ---------- v36.22: voz por micrófono (EXPERIMENTAL, apagada por defecto) ----------
+   Quien quiere hablar toca 🎙 (se abre su micrófono) y vuelve a tocar para silenciar.
+   Audio punto a punto (PeerJS/WebRTC), en malla: solo se conecta con los demás mientras alguien habla.
+   Escuchar no requiere permiso ni activar nada. El botón 🎙 aparece solo si se activa en «?» → Voz. */
+const VOZ=(function(){
+  let on=false, deaf=false;
+  try{ const q=/[?&]voz=([01])/.exec(location.search); if(q) localStorage.setItem('di-voz',q[1]); on=localStorage.getItem('di-voz')==='1'; deaf=localStorage.getItem('di-vozmute')==='1'; }catch(e){}
+  let curRoom=null, stream=null, talking=false, busy=false, tm=0, toastT=0, needTap=false;
+  const calls=new Map(), inc=new Map();
+  let box=null, bTalk=null, bEar=null, lab=null;
+  const css=document.createElement('style');
+  css.textContent='#vozb{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font:700 13px system-ui,sans-serif;pointer-events:none}'
+   +'#vozb>*{pointer-events:auto}#vozb .vl{max-width:70vw;background:rgba(20,12,70,.92);color:#fff;border-radius:12px;padding:6px 10px;box-shadow:0 2px 10px rgba(0,0,0,.4)}'
+   +'#vozb .vr{display:flex;gap:8px}#vozb button{border:0;border-radius:50%;width:52px;height:52px;font-size:24px;line-height:1;cursor:pointer;background:linear-gradient(180deg,#7a69ee,#4f3fc4);color:#fff;box-shadow:0 4px 0 #2b1f80,0 6px 10px rgba(0,0,0,.35);padding:0}'
+   +'#vozb button.on{background:linear-gradient(180deg,#ff6b6b,#d62f2f);box-shadow:0 4px 0 #8e1a1a,0 6px 10px rgba(0,0,0,.35);animation:vozp 1.2s infinite}'
+   +'#vozb button.off{opacity:.6}@keyframes vozp{50%{transform:scale(1.07)}}.vozs{display:flex;align-items:center;gap:8px;margin:4px 0}.vozs input{width:22px;height:22px}';
+  document.head.appendChild(css);
+  const myName=()=>{ try{ return (typeof Pl!=='undefined'&&Pl&&Pl.name)||'Anfitrión'; }catch(e){ return 'Anfitrión'; } };
+  const nameOf=id=>{ try{ const p=(room.peers()||[]).find(x=>x.peer===id); return (p&&p.presence&&p.presence.name)||''; }catch(e){ return ''; } };
+  function toast(t,ms){ clearTimeout(toastT); if(lab){ lab.dataset.t=t||''; } ui(); if(t&&ms) toastT=setTimeout(()=>{ if(lab) lab.dataset.t=''; ui(); },ms); }
+  function ui(){
+    const show=!!(room&&role);
+    if(!box){
+      box=document.createElement('div'); box.id='vozb';
+      lab=document.createElement('div'); lab.className='vl'; lab.dataset.t='';
+      const row=document.createElement('div'); row.className='vr';
+      bEar=document.createElement('button'); bEar.type='button'; bEar.onclick=()=>{ setDeaf(!deaf); };
+      bTalk=document.createElement('button'); bTalk.type='button'; bTalk.onclick=()=>{ talking?stop():start(); };
+      row.appendChild(bEar); row.appendChild(bTalk); box.appendChild(lab); box.appendChild(row); document.body.appendChild(box);
+      lab.onclick=()=>hear();
+    }
+    const speakers=[]; inc.forEach(v=>speakers.push(v.n));
+    let t=lab.dataset.t||'';
+    if(!t){ if(needTap&&speakers.length) t='🔊 Tocá acá para escuchar'; else if(speakers.length) t='🔊 '+speakers.join(', ')+(speakers.length>1?' hablan':' habla'); else if(talking) t='🎙 Estás hablando'; }
+    lab.textContent=t; lab.style.display=t?'':'none';
+    bTalk.style.display=on?'':'none'; bTalk.textContent=talking?'🎙':'🎤'; bTalk.className=talking?'on':''; bTalk.setAttribute('aria-label',talking?'Silenciar mi micrófono':'Hablar'); bTalk.disabled=busy;
+    bEar.style.display=(on||speakers.length||deaf)?'':'none'; bEar.textContent=deaf?'🔇':'🔊'; bEar.className=deaf?'off':''; bEar.setAttribute('aria-label',deaf?'Escuchar a los demás':'Silenciar a los demás');
+    box.style.display=show&&(on||speakers.length||deaf)?'':'none';
+  }
+  function setDeaf(v){ deaf=v; try{ localStorage.setItem('di-vozmute',v?'1':'0'); }catch(e){} inc.forEach(x=>{ x.a.muted=deaf; }); ui(); }
+  function hear(){ let ok=true; inc.forEach(x=>{ try{ const p=x.a.play(); if(p&&p.catch) p.catch(()=>{ ok=false; }); }catch(e){} }); needTap=!ok; setTimeout(ui,300); }
+  document.addEventListener('pointerdown',()=>{ if(needTap) hear(); },{passive:true});
+  function incoming(c){
+    try{ c.answer(); }catch(e){ return; }
+    c.on('stream',s=>{
+      if(inc.has(c)) return;
+      const a=document.createElement('audio'); a.autoplay=true; a.setAttribute('playsinline',''); a.srcObject=s; a.muted=deaf; a.style.display='none'; document.body.appendChild(a);
+      inc.set(c,{a:a,n:(c.metadata&&c.metadata.n)||nameOf(c.peer)||'Alguien'});
+      try{ const p=a.play(); if(p&&p.catch) p.catch(()=>{ needTap=true; ui(); }); }catch(e){}
+      ui();
+    });
+    const gone=()=>{ const x=inc.get(c); if(x){ try{ x.a.srcObject=null; x.a.remove(); }catch(e){} inc.delete(c); if(!inc.size) needTap=false; ui(); } };
+    c.on('close',gone); c.on('error',gone);
+  }
+  function dial(){
+    const rm=room; if(!rm||!talking||!stream) return;
+    const pr=rm.peerObj&&rm.peerObj(); if(!pr||!pr.open) return;
+    const now=Date.now();
+    (rm.peers()||[]).filter(x=>!x.isMe).forEach(x=>{
+      const o=calls.get(x.peer); if(o&&(o.c.open||now-o.t<8000)) return;
+      if(o){ try{ o.c.close(); }catch(e){} }
+      try{
+        const c=pr.call(x.peer,stream,{metadata:{n:myName()}}); const rec={c:c,t:now}; calls.set(x.peer,rec);
+        const gone=()=>{ if(calls.get(x.peer)===rec) calls.delete(x.peer); };
+        c.on('close',gone); c.on('error',gone);
+      }catch(e){}
+    });
+  }
+  async function start(){
+    if(talking||busy||!room) return;
+    busy=true; ui();
+    try{
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw {name:'NoApi'};
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}
+      talking=true; dial(); clearInterval(tm); tm=setInterval(dial,1500);
+    }catch(e){
+      const n=e&&e.name;
+      toast(n==='NotAllowedError'||n==='SecurityError'?'Sin permiso de micrófono. Habilitalo en el navegador.':n==='NotFoundError'||n==='OverconstrainedError'?'No se encontró un micrófono.':n==='NoApi'?'Este navegador no permite usar el micrófono.':'No se pudo abrir el micrófono.',5000);
+    }
+    busy=false; ui();
+  }
+  function stop(){
+    clearInterval(tm); tm=0; talking=false;
+    calls.forEach(o=>{ try{ o.c.close(); }catch(e){} }); calls.clear();
+    if(stream){ try{ stream.getTracks().forEach(t=>t.stop()); }catch(e){} stream=null; }
+    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+    ui();
+  }
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden&&talking) stop(); });
+  setInterval(()=>{
+    if(room!==curRoom){ if(talking) stop(); inc.forEach(x=>{ try{ x.a.remove(); }catch(e){} }); inc.clear(); curRoom=room; if(room) room.onCall=incoming; }
+    if(room&&!room.onCall) room.onCall=incoming;
+    ui();
+  },1000);
+  function section(){
+    const mk=(tag,txt)=>{ const e=document.createElement(tag); e.textContent=txt; return e; };
+    const row=(txt,get,set)=>{ const l=document.createElement('label'); l.className='vozs'; const i=document.createElement('input'); i.type='checkbox'; i.checked=get(); i.onchange=()=>set(i.checked); l.appendChild(i); l.appendChild(mk('span',txt)); return l; };
+    return [mk('h3','Voz (experimental)'),
+      mk('p','Para charlar durante la partida: tocás 🎤 para hablar y de nuevo para silenciar. Escuchar no requiere nada. Si hay varios en la misma habitación, que hable uno por vez para evitar eco.'),
+      row('Mostrar el botón para hablar en este dispositivo',()=>on,v=>{ on=v; try{ localStorage.setItem('di-voz',v?'1':'0'); }catch(e){} if(!v) stop(); ui(); }),
+      row('Silenciar las voces de los demás',()=>deaf,v=>setDeaf(v))];
+  }
+  return {section:section,stop:stop,state:()=>({on:on,talking:talking,deaf:deaf,speakers:inc.size,calls:calls.size})};
 })();
 
 /* ---------- arranque ---------- */

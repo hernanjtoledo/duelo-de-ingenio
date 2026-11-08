@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.25">
+<meta name="app-version" content="v36.26">
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
 <title>Ingenia</title>
@@ -2292,7 +2292,7 @@ function buildHome(){
   const hero=el('div',{class:'hero',role:'img','aria-label':'Ingenia'}); hero.innerHTML='<svg viewBox="60 60 392 392" aria-hidden="true" focusable="false"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs><circle cx="256" cy="256" r="170" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="38"/><circle cx="256" cy="256" r="170" fill="none" stroke="url(#lgB)" stroke-width="38" stroke-linecap="round" stroke-dasharray="800 1068" transform="rotate(-90 256 256)"/><circle cx="256" cy="186" r="24" fill="#fbbf24"/><rect x="228" y="228" width="56" height="130" rx="28" fill="#fff"/></svg><span class="hw">Ingenia</span>';
   return el('div',{class:'stack'},
     hero,
-    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.25)'),
+    head('Juegos en grupo desde el celular. Contestar rápido suma más puntos. (v36.26)'),
     back,
     el('div',{class:'grid2'},join,make),
     copyLine());
@@ -2706,7 +2706,7 @@ const HELP=(function(){
    Escuchar no requiere permiso ni activar nada. El botón 🎙 aparece solo si se activa en «?» → Voz. */
 const VOZ=(function(){
   let on=false, deaf=false;
-  try{ const q=/[?&]voz=([01])/.exec(location.search); if(q) localStorage.setItem('di-voz',q[1]); on=localStorage.getItem('di-voz')==='1'; deaf=localStorage.getItem('di-vozmute')==='1'; }catch(e){}
+  try{ const q=/[?&]voz=([01])/.exec(location.search); if(q) localStorage.setItem('di-voz',q[1]); on=localStorage.getItem('di-voz')!=='0'; localStorage.removeItem('di-vozmute'); }catch(e){}
   let rxInfo='', curRoom=null, stream=null, talking=false, busy=false, tm=0, toastT=0, needTap=false;
   const calls=new Map(), inc=new Map();
   let box=null, bTalk=null, lab=null;
@@ -2731,12 +2731,12 @@ const VOZ=(function(){
     }
     const speakers=[]; inc.forEach(v=>speakers.push(v.n));
     let t=lab.dataset.t||'';
-    if(!t){ if(needTap&&speakers.length) t='🔊 Tocá acá para escuchar'; else if(speakers.length) t='🔊 '+speakers.join(', ')+(speakers.length>1?' hablan':' habla')+(rxInfo?' · '+rxInfo:''); else if(talking) t='🎙 Estás hablando'; }
+    if(!t){ if(needTap&&speakers.length) t='🔊 Tocá acá para escuchar'; else if(speakers.length) t='🔊 '+speakers.join(', ')+(speakers.length>1?' hablan':' habla')+(rxInfo&&/[?&]vozdiag/.test(location.search)?' · '+rxInfo:''); else if(talking) t='🎙 Estás hablando'; }
     lab.textContent=t; lab.style.display=t?'':'none';
     bTalk.style.display=on&&show?'':'none'; bTalk.classList.toggle('talk',talking); bTalk.setAttribute('aria-label',talking?'Silenciar mi micrófono':'Hablar'); bTalk.title=talking?'Silenciar mi micrófono':'Hablar'; bTalk.disabled=busy;
     box.style.display=show&&t?'':'none';
   }
-  function setDeaf(v){ deaf=v; try{ localStorage.setItem('di-vozmute',v?'1':'0'); }catch(e){} inc.forEach(x=>{ x.a.muted=deaf; }); ui(); }
+  function setDeaf(v){ deaf=v; inc.forEach(x=>{ x.a.muted=deaf; }); ui(); }
   function hear(){ let ok=true; inc.forEach(x=>{ try{ const p=x.a.play(); if(p&&p.catch) p.catch(()=>{ ok=false; }); }catch(e){} }); needTap=!ok; setTimeout(ui,300); }
   document.addEventListener('pointerdown',()=>{ if(needTap) hear(); },{passive:true});
   function incoming(c){
@@ -2812,9 +2812,8 @@ const VOZ=(function(){
     const mk=(tag,txt)=>{ const e=document.createElement(tag); e.textContent=txt; return e; };
     const row=(txt,get,set)=>{ const l=document.createElement('label'); l.className='vozs'; const i=document.createElement('input'); i.type='checkbox'; i.checked=get(); i.onchange=()=>set(i.checked); l.appendChild(i); l.appendChild(mk('span',txt)); return l; };
     return [mk('h3','Voz (experimental)'),
-      mk('p','Para charlar durante la partida: tocá el micrófono amarillo de arriba para hablar y de nuevo para silenciar. Escuchar no requiere nada. Si hay varios en la misma habitación, que hable uno por vez para evitar eco.'),
-      row('Mostrar el botón para hablar en este dispositivo',()=>on,v=>{ on=v; try{ localStorage.setItem('di-voz',v?'1':'0'); }catch(e){} if(!v) stop(); ui(); }),
-      row('Silenciar las voces de los demás',()=>deaf,v=>setDeaf(v))];
+      mk('p','Para charlar durante la partida: tocá el micrófono amarillo de arriba para hablar y de nuevo para silenciar. Para escuchar no hace falta hacer nada; el volumen es el de tu celular. Si hay varios en la misma habitación, que hable uno por vez para evitar eco.'),
+      row('Mostrar el botón para hablar en este dispositivo',()=>on,v=>{ on=v; try{ localStorage.setItem('di-voz',v?'1':'0'); }catch(e){} if(!v) stop(); ui(); })];
   }
   return {section:section,stop:stop,state:()=>({on:on,talking:talking,deaf:deaf,speakers:inc.size,calls:calls.size})};
 })();

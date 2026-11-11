@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.36">
+<meta name="app-version" content="v36.37">
 <!-- Emotes: Noto Emoji © Google LLC, licencia Apache 2.0 (https://github.com/googlefonts/noto-emoji). Ver LICENSE_Noto-Emoji_Apache-2.0.txt -->
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
@@ -14,21 +14,21 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1a1446">
+<meta name="theme-color" content="#12132b">
 <meta name="description" content="Ingenia: trivia en grupo con PIN. Más de 34.000 preguntas.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lilita+One&family=Nunito:wght@500;700;800&display=swap">
 <style>
 /* Layout: una columna centrada tipo consola de juego. El anfitrión proyecta la pantalla grande; los jugadores contestan con botones grandes desde el celular. Un solo mundo visual (índigo profundo, respuestas en cuatro colores con forma propia). */
 :root{
-  --bg:#1a1446;
-  --bg-2:#271d66;
-  --panel:#33298a;
-  --line:#4a3fb0;
+  --bg:#12132b;
+  --bg-2:#272a55;
+  --panel:#1c1e3f;
+  --line:#33376b;
   --ink:#f7f4ff;
   --muted:#c3bcf0;
   --gold:#ffd23f;
@@ -104,7 +104,7 @@ body[data-scr="home"] .brand{visibility:hidden}
 @keyframes cdpop{0%{opacity:0;transform:scale(.4)}18%{opacity:1;transform:scale(1.12)}32%{transform:scale(1)}78%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.8)}}
 @keyframes cdspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.cdbox .ring{animation:none}.cdbox .n{animation:none;opacity:0}.cdbox .n:nth-of-type(1){opacity:1;transform:none}}
-.rank{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(11,7,36,.45);border-radius:16px;padding:10px 18px;width:100%;max-width:340px}
+.rank{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(10,11,28,.45);border-radius:16px;padding:10px 18px;width:100%;max-width:340px}
 .rkbig{display:flex;align-items:baseline;justify-content:center;gap:8px}
 .rkbig b{font:400 2.6rem/1 var(--display);color:#fff}
 .rkbig span{color:var(--muted);font-weight:700}
@@ -230,7 +230,7 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 
 /* v36.3: pregunta a pantalla completa, barra fija, resultado personal */
 .stack.qfull{min-height:calc(100vh - 150px);min-height:calc(100dvh - 150px)}
-.qfull .q{flex:1 1 auto;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(1.9rem,6.4vw + .3rem,3.3rem);line-height:1.12;padding:20px 16px;background:rgba(18,8,48,.58);border-radius:22px;text-shadow:0 2px 0 rgba(0,0,0,.4);margin:0}
+.qfull .q{flex:1 1 auto;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(1.9rem,6.4vw + .3rem,3.3rem);line-height:1.12;padding:20px 16px;background:rgba(13,14,34,.58);border-radius:22px;text-shadow:0 2px 0 rgba(0,0,0,.4);margin:0}
 .qfull .q.lg{font-size:clamp(1.5rem,4.8vw + .3rem,2.5rem)}
 .qfull .q.xl{font-size:clamp(1.2rem,3.6vw + .3rem,1.9rem)}
 .stack:not(.qfull) .opts{grid-template-columns:1fr 1fr}
@@ -239,9 +239,9 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .qfull .opt{flex-direction:column;align-items:flex-start;justify-content:space-between;min-height:clamp(108px,17vh,160px);font-size:clamp(1rem,2.8vw + .55rem,1.6rem);padding:14px 14px 16px}
 .qfull .opt .shape{width:34px;height:34px}
 .opt[data-i="1"],.opt[data-i="2"],.opt[data-i="3"]{text-shadow:none}
-.qfull .actions{background:rgba(11,7,36,.82);border-radius:16px;padding:8px 12px}
+.qfull .actions{background:rgba(10,11,28,.82);border-radius:16px;padding:8px 12px}
 .stack.pw{min-height:calc(100vh - 150px);min-height:calc(100dvh - 150px)}
-.pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;align-items:center;gap:6px;background:rgba(11,7,36,.93);border-radius:16px;padding:8px 14px calc(8px + env(safe-area-inset-bottom));font-weight:800;z-index:3;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
+.pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;align-items:center;gap:6px;background:rgba(10,11,28,.93);border-radius:16px;padding:8px 14px calc(8px + env(safe-area-inset-bottom));font-weight:800;z-index:3;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
 .pfoot .av{font-size:1.15rem;margin-right:.2em}
 .pfoot .pn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pfoot .pp{margin-left:auto;background:rgba(255,255,255,.14);border-radius:14px;padding:3px 12px;font-variant-numeric:tabular-nums}
@@ -254,7 +254,7 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .result.bad .rav{animation:avshake .55s ease-in-out}
 .result.bad .rav{filter:grayscale(.45) drop-shadow(0 2px 3px rgba(0,0,0,.38))}
 @keyframes ravhop{0%{transform:translateY(0) scale(.7)}40%{transform:translateY(-14px) scale(1.15)}70%{transform:translateY(0) scale(.96)}100%{transform:none}}
-.result .gain{background:rgba(11,7,36,.55);border-radius:14px;padding:8px 24px;color:#ffd166}
+.result .gain{background:rgba(10,11,28,.55);border-radius:14px;padding:8px 24px;color:#ffd166}
 .result .streakb{background:rgba(255,159,28,.25);border:1px solid #ff9f1c;border-radius:999px;padding:4px 14px;font-weight:800}
 @media (prefers-reduced-motion:reduce){.sent .lock,.result.good .rav,.result.bad .rav,.avprev .av{animation:none}}
 .note{background:var(--bg-2);border-radius:14px;padding:12px 16px}
@@ -480,6 +480,40 @@ button.opt:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
 .opt.dim{opacity:.26;filter:grayscale(.6)}
 .opt.ok{transform:scale(1.03)}
 @media (prefers-reduced-motion:reduce){.result.rb{animation:none}}
+
+/* v36.37: diseño del boceto (azul noche, tarjeta de pregunta, fichas pastel) */
+:root{--bg:#12132b;--bg-2:#272a55;--panel:#1c1e3f;--line:#33376b;--ink:#f2f3ff;--muted:#a4a8d6;--gold:#ffc400;--on-gold:#1b1c3a;--a0:#ff7a7a;--a1:#3fd2c3;--a2:#ffc233;--a3:#a99bff;--on-a1:#14152e;--on-a2:#14152e;--on-a3:#14152e;--good:#3ddc97;--bad:#ff5d73;--f2:'Fredoka','Nunito',system-ui,sans-serif}
+body{background-image:radial-gradient(900px 480px at 50% -8%,#1c1e3f,transparent 70%)}
+.qcard{background:var(--panel);border:1.5px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.qs.qfull .qcard{flex:1}
+.qh{display:flex;flex-direction:column;gap:12px}
+.qtop{display:flex;justify-content:space-between;align-items:center;gap:8px;font:700 .9rem var(--body);color:var(--muted)}
+.qtop .cnt{background:var(--bg-2);color:var(--ink);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.tm{display:flex;align-items:center;gap:10px}
+.tm .bar{flex:1;height:14px}
+.bar>i{background:var(--a1)}
+.bar>i.hot{background:var(--bad)}
+.tm .clock{display:block;margin:0;min-width:40px;height:auto;padding:0;border-radius:0;background:none;color:var(--ink);font:600 1.75rem/1 var(--f2);text-align:right}
+.clock.hot{background:none;color:var(--bad)}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.qcard .tag{text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:700;border-radius:999px;padding:5px 14px}
+.qcard .q{font-family:var(--f2);font-weight:600;text-align:center;background:none;padding:0;border-radius:0}
+.qfull .qcard .q{flex:1 1 auto;display:flex;align-items:center;justify-content:center}
+.qcard .opts{grid-template-columns:1fr 1fr;gap:10px;margin-top:0}
+.qfull .qcard .opts{margin-top:auto}
+.qcard .opt{flex-direction:column;flex-wrap:nowrap;align-items:center;justify-content:center;text-align:center;gap:6px;border-radius:18px;padding:12px;font:600 1.05rem/1.2 var(--f2);box-shadow:0 5px 0 rgba(0,0,0,.25);min-height:96px;position:relative;color:#14152e}
+.qfull .qcard .opt{min-height:clamp(108px,17vh,160px)}
+.qcard .opt .shape{width:34px;height:34px}
+.qcard .opt:has(.count) .otext{flex:0 1 auto;min-width:0}
+.qcard .opt .count{position:absolute;top:8px;left:10px;margin:0;font:600 .95rem/1 var(--f2);padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.22)}
+.qcard .opt .mark{position:absolute;top:6px;right:12px;margin:0;font-size:1.5rem}
+.opt.sel{outline:4px solid var(--ink);outline-offset:-4px;transform:scale(.97)}
+.opt.lock{opacity:.45;filter:saturate(.6)}
+.opt.dim{opacity:.22;transform:scale(.94);filter:grayscale(.7);box-shadow:none}
+.qcard .opt.ok{outline:none;transform:scale(1.05);box-shadow:0 0 0 5px var(--good),0 0 34px color-mix(in srgb,var(--good) 75%,transparent)}
+.wait{text-align:center;font:700 .9rem var(--body);color:var(--muted)}
+.qcard .panel{background:var(--bg-2);border-radius:16px;padding:14px}
+.qcard .lead.center{text-align:center}
 </style>
 </head>
 <body>
@@ -1288,7 +1322,8 @@ function frame(){
   if(fill) fill.style.transform='scaleX('+(left/limMs)+')';
   if(clk) clk.textContent=Math.ceil(left/1000);
   const sec=Math.ceil(left/1000);
-  if(sec!==lastSec){ lastSec=sec; if(sec>0&&sec<=5&&clockMine()) SND.tick(sec); const hot=sec>0&&sec<=4; if(clk) clk.classList.toggle('hot',hot); if(fill) fill.classList.toggle('hot',hot); }
+  const hot=sec>0&&sec<=4; if(clk) clk.classList.toggle('hot',hot); if(fill) fill.classList.toggle('hot',hot);
+  if(sec!==lastSec){ lastSec=sec; if(sec>0&&sec<=5&&clockMine()) SND.tick(sec); }
   if(left<=0){ expired=true; if(clockMine()) SND.timeup(); render(); return; }
   rafId=requestAnimationFrame(frame);
 }
@@ -1646,6 +1681,7 @@ function onPeers(){
     const H=hostPresence();
     if(H&&H.bv!==BV){ fail('Tu página es de otra versión del juego. Recargala (o borrá la caché del navegador) y volvé a entrar.'); return; }
     playerSync(); render(); fillFeed();
+    if(H&&H.ph==='q'){ const c=document.getElementById('cnt'); if(c) c.textContent=pCntText(H); }
   }
 }
 
@@ -2184,7 +2220,7 @@ function hostNum(v){
   collect();
   render();
 }
-function cntText(){ return G.locked.size+' de '+players().length+' respondieron'; }
+function cntText(){ return 'Respondieron '+G.locked.size+' de '+players().length; }
 function updateCount(){
   const c=document.getElementById('cnt');
   if(c&&G) c.textContent=cntText();
@@ -2332,14 +2368,17 @@ function optEl(q,i,o){
     o.count!=null?el('span',{class:'count',text:o.count}):null,
     o.mark?el('span',{class:'mark','aria-hidden':'true',text:o.mark}):null);
 }
-function qhead(q,n,total,withClock){
-  return el('div',{class:'qhead'},
-    el('span',{class:'tag',text:'Pregunta '+n+' de '+total}),
-    el('span',{class:'tag '+q.k,text:CATS[q.cat]+(q.k==='n'?' · ¿Cuánto?':'')}),
-    curDbl()?el('span',{class:'tag dbl',text:'×2 Puntos dobles'}):null,
-    pickedByNow()?el('span',{class:'tag pb',text:'🎯 Eligió '+pickedByNow()}):null,
-    withClock?el('div',{class:'clock',id:'clock','aria-hidden':'true',text:q.t}):null);
+function qhead(q,n,total,withClock,cnt){
+  return el('div',{class:'qh'},
+    el('div',{class:'qtop'},el('span',{class:'qn',text:'Pregunta '+n+' de '+total}),el('span',{id:'cnt',class:'cnt',role:'status',text:cnt})),
+    withClock?el('div',{class:'tm'},el('div',{class:'bar'},el('i',{id:'barfill'})),el('div',{class:'clock',id:'clock','aria-hidden':'true',text:q.t})):null,
+    el('div',{class:'chips'},
+      el('span',{class:'tag '+q.k,text:CATS[q.cat]+(q.k==='n'?' · ¿Cuánto?':'')}),
+      curDbl()?el('span',{class:'tag dbl',text:'×2 Puntos dobles'}):null,
+      pickedByNow()?el('span',{class:'tag pb',text:'🎯 Eligió '+pickedByNow()}):null));
 }
+function pCntText(H){ const lk=Array.isArray(H.lk)?H.lk.length:0; return 'Respondieron '+lk+' de '+Math.max(playerNames().length,lk,1); }
+function revCnt(b){ return 'Respondieron '+b.filter(e=>e[3]!==-1).length+' de '+b.length; }
 function boardList(b,r,me,gain,full,qn){
   const anim=!!(gain&&full&&qn>0&&!RMOT&&full.length>1);
   const po=anim?prevOrder(full):null;
@@ -2749,27 +2788,19 @@ function hfoot(){
 }
 function buildHostQ(){
   const q=BANK[G.order[G.qn]];
-  if(G.me&&G.myChoice!==null&&!expired){
-    return el('div',{class:'stack pw'},
-      sentCard(G.seq),
-      q.k==='n'?el('section',{class:'panel center'},el('p',{class:'lead',text:'Tu respuesta: '+fmtN(G.myChoice,q)})):optEl(q,G.myChoice,{pos:permFor(q,G.seq,G.me.name).indexOf(G.myChoice)}),
-      el('div',{class:'actions between'},
-        el('span',{id:'cnt',class:'cnt',role:'status',text:cntText()}),
-        el('button',{class:'btn ghost',type:'button',onclick:closeQuestion,text:'Cerrar pregunta'})),
-      hfoot());
-  }
-  return el('div',{class:'stack'+(qfull(q)?' qfull':'')},
-    dblBanner(),duelBanner(),
-    qhead(q,G.qn+1,G.order.length,true),
-    offlineNode(),
-    el('div',{class:'bar'},el('i',{id:'barfill'})),
-    el('h2',{class:qfull(q)?qcls(q):'q',text:q.q}),qimg(q),
-    q.k==='n'?(G.me&&G.myChoice===null&&!expired?numForm(q,hostNum):el('section',{class:'panel center'},el('p',{class:'lead',role:'status',text:G.me?(G.myChoice!==null?'Tu respuesta quedó registrada: '+fmtN(G.myChoice,q):'Se acabó tu tiempo.'):'Los jugadores están escribiendo su estimación…'}))):
-    el('div',{class:'opts'},(G.me?permFor(q,G.seq,G.me.name):[0,1,2,3]).map((j,k)=>optEl(q,j,G.me&&G.myChoice===null&&!expired?{pos:k,onclick:()=>hostAnswer(j)}:{pos:k,cls:G.myChoice===j?'sel':''}))),
-    q.k!=='n'&&G.me?el('p',{class:'lead',role:'status',text:G.myChoice!==null?'Tu respuesta quedó registrada.':(expired?'Se acabó tu tiempo.':'Tocá tu respuesta: vos también jugás.')}):null,
-    el('div',{class:'actions between'},
-      el('span',{id:'cnt',class:'cnt',role:'status',text:cntText()}),
-      el('button',{class:'btn ghost',type:'button',onclick:closeQuestion,text:'Cerrar pregunta'})));
+  const act=G.me&&G.myChoice===null&&!expired;
+  const pm=G.me?permFor(q,G.seq,G.me.name):[0,1,2,3].slice(0,q.o.length);
+  return el('div',{class:'stack qs'+(qfull(q)?' qfull':'')},
+    dblBanner(),duelBanner(),offlineNode(),
+    el('section',{class:'qcard'},
+      qhead(q,G.qn+1,G.order.length,true,cntText()),
+      el('h2',{class:qfull(q)?qcls(q):'q small',text:q.q}),qimg(q),
+      q.k==='n'?(act?numForm(q,hostNum):el('section',{class:'panel center'},el('p',{class:'lead',role:'status',text:G.me?(G.myChoice!==null?'Tu respuesta quedó registrada: '+fmtN(G.myChoice,q):'Se acabó tu tiempo.'):'Los jugadores están respondiendo en sus celulares.'}))):
+      el('div',{class:'opts'},pm.map((j,k)=>optEl(q,j,act?{pos:k,onclick:()=>hostAnswer(j)}:{pos:k,cls:G.myChoice===j?'sel':(G.myChoice!==null?'lock':'')}))),
+      q.k!=='n'&&G.me?el('p',{class:'wait',role:'status',text:G.myChoice!==null?'Tu respuesta quedó registrada.':(expired?'Se acabó tu tiempo.':'Tocá tu respuesta: vos también jugás.')}):null),
+    el('div',{class:'actions'},
+      el('button',{class:'btn ghost',type:'button',onclick:closeQuestion,text:'Cerrar pregunta'})),
+    G.me?hfoot():null);
 }
 function resBanner(o){
   const gn=(o.isN?o.res!==-1:o.res===1)&&o.e[2]!==undefined;
@@ -2799,11 +2830,12 @@ function buildHostRev(){
   const r=ranks(G.board);
   const last=G.qn+1>=G.order.length;
   return el('div',{class:'stack'},
-    qhead(q,G.qn+1,G.order.length,false),
     offlineNode(),
-    el('h2',{class:'q small',text:q.q}),qimg(q),
-    q.k==='n'?numReveal(q,G.gs,G.me?G.me.name:null):el('div',{class:'opts'},(G.me?permFor(q,G.seq,G.me.name):[0,1,2,3].slice(0,q.o.length)).map((j,k)=>optEl(q,j,{pos:k,cls:j===q.c?'ok':'dim',count:G.dist[j],mark:j===q.c?'✓':null}))),
-    hostMine(q,r),
+    el('section',{class:'qcard rev'},
+      qhead(q,G.qn+1,G.order.length,false,revCnt(G.board)),
+      el('h2',{class:'q small',text:q.q}),qimg(q),
+      q.k==='n'?numReveal(q,G.gs,G.me?G.me.name:null):el('div',{class:'opts'},(G.me?permFor(q,G.seq,G.me.name):[0,1,2,3].slice(0,q.o.length)).map((j,k)=>optEl(q,j,{pos:k,cls:j===q.c?'ok':'dim',count:G.dist[j],mark:j===q.c?'✓':null}))),
+      hostMine(q,r)),
     streakBanner(G.board,G.me?G.me.name:null),
     q.x?el('p',{class:'note'},el('strong',{text:(q.k==='r'?'Explicación: ':'Dato: ')}),q.x):null,
     el('button',{class:'btn ghost',type:'button',disabled:bad.has(q.id),onclick:()=>{flagBad(q.id);render();},text:bad.has(q.id)?'Marcada: no volverá a salir en este dispositivo':'Reportar pregunta errónea o confusa'}),
@@ -2871,19 +2903,17 @@ function buildPQ(){
   const q=H?BANK[H.qi]:null;
   if(!q) return waitCard('Preparando la pregunta…','');
   if(Pl.seq===Pl.skipSeq) return waitCard('Entraste en medio de una pregunta','Jugás desde la próxima.');
-  if(Pl.choice!==null){
-    return el('div',{class:'stack pw'},
-      sentCard(H.seq,!ackd(H)),
-      q.k==='n'?el('section',{class:'panel center'},el('p',{class:'lead',text:'Tu respuesta: '+fmtN(Pl.choice,q)})):optEl(q,Pl.choice,{pos:permFor(q,H.seq,Pl.name).indexOf(Pl.choice)}),
-      pfoot());
-  }
-  if(expired) return waitCard('Se acabó el tiempo','Esperá el resultado.');
-  return el('div',{class:'stack'+(qfull(q)?' qfull':'')},
+  const ans=Pl.choice!==null;
+  if(!ans&&expired) return waitCard('Se acabó el tiempo','Esperá el resultado.');
+  const pm=permFor(q,H.seq,Pl.name);
+  return el('div',{class:'stack qs'+(qfull(q)?' qfull':'')},
     dblBanner(),duelBanner(),
-    qhead(q,H.qn+1,H.total,true),
-    el('div',{class:'bar'},el('i',{id:'barfill'})),
-    el('h2',{class:qfull(q)?qcls(q):'q small',text:q.q}),qimg(q),
-    q.k==='n'?numForm(q,answerNum):el('div',{class:'opts'},permFor(q,H.seq,Pl.name).map((j,k)=>optEl(q,j,{pos:k,onclick:()=>answer(j)}))),
+    el('section',{class:'qcard'},
+      qhead(q,H.qn+1,H.total,true,pCntText(H)),
+      el('h2',{class:qfull(q)?qcls(q):'q small',text:q.q}),qimg(q),
+      q.k==='n'?(ans?el('p',{class:'lead center',text:'Tu respuesta: '+fmtN(Pl.choice,q)}):numForm(q,answerNum)):
+        el('div',{class:'opts'},pm.map((j,k)=>optEl(q,j,ans?{pos:k,cls:j===Pl.choice?'sel':'lock'}:{pos:k,onclick:()=>answer(j)}))),
+      ans?el('p',{class:'wait',role:'status',text:ackd(H)?'Respuesta recibida, esperando al resto…':'Enviando tu respuesta…'}):null),
     pfoot());
 }
 function buildPRev(){
@@ -2907,12 +2937,13 @@ function buildPRev(){
   const pm=q&&!isN?permFor(q,H.seq,Pl.name):[];
   /* mismo orden de pantalla que ve el anfitrión: racha, pregunta, respuesta, dato, reporte, posiciones, y al final el resultado propio */
   return el('div',{class:'stack'},
-    q?qhead(q,H.qn+1,H.total,false):null,
-    q?el('h2',{class:'q small',text:q.q}):null,
-    q?qimg(q):null,
-    isN&&Array.isArray(H.gs)?numReveal(q,H.gs,Pl.name):null,
-    q&&!isN&&H.ok!=null?el('div',{class:'opts'},pm.map((j,k)=>optEl(q,j,{pos:k,cls:j===H.ok?'ok':'dim',count:H.dist?H.dist[j]:null,mark:j===H.ok?'✓':null}))):null,
-    mine,
+    q?el('section',{class:'qcard rev'},
+      qhead(q,H.qn+1,H.total,false,revCnt(b)),
+      el('h2',{class:'q small',text:q.q}),
+      qimg(q),
+      isN&&Array.isArray(H.gs)?numReveal(q,H.gs,Pl.name):null,
+      !isN&&H.ok!=null?el('div',{class:'opts'},pm.map((j,k)=>optEl(q,j,{pos:k,cls:j===H.ok?'ok':'dim',count:H.dist?H.dist[j]:null,mark:j===H.ok?'✓':null}))):null,
+      mine):null,
     i>=0?streakBanner(b,Pl.name):null,
     q&&q.x?el('p',{class:'note'},el('strong',{text:(q.k==='r'?'Explicación: ':'Dato: ')}),q.x):null,
     q?el('button',{class:'btn ghost',type:'button',disabled:bad.has(q.id),onclick:()=>{flagBad(q.id);render();},text:bad.has(q.id)?'Marcada: no volverá a salir en este dispositivo':'Reportar pregunta errónea o confusa'}):null,

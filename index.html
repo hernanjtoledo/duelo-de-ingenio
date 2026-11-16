@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="app-version" content="v36.44">
+<meta name="app-version" content="v36.45">
 <!-- Emotes: Noto Emoji © Google LLC, licencia Apache 2.0 (https://github.com/googlefonts/noto-emoji). Ver LICENSE_Noto-Emoji_Apache-2.0.txt -->
 <meta name="author" content="Hernán Toledo">
 <meta name="copyright" content="© 2026 Hernán Toledo. Todos los derechos reservados.">
@@ -3136,12 +3136,13 @@ const HELP=(function(){
 })();
 
 /* ---------- v36.22: voz por micrófono (EXPERIMENTAL, apagada por defecto) ----------
+   v36.45: en partidas de más de 5 personas (anfitrión + 4) el botón se oculta: 7 llamadas simultáneas trabaron una partida de 8 (iPhone anfitrión).
    Quien quiere hablar toca 🎙 (se abre su micrófono) y vuelve a tocar para silenciar.
    Audio punto a punto (PeerJS/WebRTC), en malla: solo se conecta con los demás mientras alguien habla.
    Escuchar no requiere permiso ni activar nada. El botón 🎙 aparece solo si se activa en «?» → Voz. */
 const VOZ=(function(){
   let on=false, deaf=false;
-  try{ const q=/[?&]voz=([01])/.exec(location.search); if(q) localStorage.setItem('di-voz',q[1]); on=localStorage.getItem('di-voz')!=='0'; localStorage.removeItem('di-vozmute'); }catch(e){}
+  try{ const q=/[?&]voz=([01])/.exec(location.search); if(q) localStorage.setItem('di-voz',q[1]); on=localStorage.getItem('di-voz')==='1'; localStorage.removeItem('di-vozmute'); }catch(e){}
   let rxInfo='', curRoom=null, stream=null, talking=false, busy=false, tm=0, toastT=0, needTap=false;
   const calls=new Map(), inc=new Map();
   let box=null, bTalk=null, lab=null;
@@ -3168,7 +3169,9 @@ const VOZ=(function(){
     let t=lab.dataset.t||'';
     if(!t){ if(needTap&&speakers.length) t='🔊 Tocá acá para escuchar'; else if(speakers.length) t='🔊 '+speakers.join(', ')+(speakers.length>1?' hablan':' habla')+(rxInfo&&/[?&]vozdiag/.test(location.search)?' · '+rxInfo:''); else if(talking) t='🎙 Estás hablando'; }
     lab.textContent=t; lab.style.display=t?'':'none';
-    bTalk.style.display=on&&show?'':'none'; bTalk.classList.toggle('talk',talking); bTalk.setAttribute('aria-label',talking?'Silenciar mi micrófono':'Hablar'); bTalk.title=talking?'Silenciar mi micrófono':'Hablar'; bTalk.disabled=busy;
+    let many=false; try{ many=((room&&room.peers&&room.peers())||[]).length>5; }catch(e){}
+    if(many&&talking) stop();
+    bTalk.style.display=on&&show&&!many?'':'none'; bTalk.classList.toggle('talk',talking); bTalk.setAttribute('aria-label',talking?'Silenciar mi micrófono':'Hablar'); bTalk.title=talking?'Silenciar mi micrófono':'Hablar'; bTalk.disabled=busy;
     box.style.display=show&&t?'':'none';
   }
   function setDeaf(v){ deaf=v; inc.forEach(x=>{ x.a.muted=deaf; }); ui(); }
